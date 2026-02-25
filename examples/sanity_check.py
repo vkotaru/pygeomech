@@ -1,5 +1,5 @@
-from pydyn import *
-from pydyn.utils.errors import ExpressionMismatchError
+from geomech import *
+from geomech.utils.errors import ExpressionMismatchError
 
 a, b, c = getScalars('a b c')
 x, y, z = getVectors(['x', 'y', 'z'])

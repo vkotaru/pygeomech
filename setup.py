@@ -2,9 +2,9 @@
 from setuptools import setup
 
 setup(
-    name='pydyn',
+    name='geomech',
     version='0.1.0',
-    packages=['pydyn'],
+    packages=['geomech'],
     install_requires=[
         "scipy", 
         "matplotlib",

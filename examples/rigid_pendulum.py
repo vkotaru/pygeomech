@@ -1,6 +1,6 @@
-from pydyn import *
-from pydyn.operations.print_tree import print_latex
-from pydyn.utils.errors import ExpressionMismatchError
+from geomech import *
+from geomech.operations.print_tree import print_latex
+from geomech.utils.errors import ExpressionMismatchError
 import numpy as np
 
 

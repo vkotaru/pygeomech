@@ -1,7 +1,7 @@
-from pydyn import *
-from pydyn.operations.addition import Add, VAdd, MAdd
-from pydyn.base.scalars import getScalars
-from pydyn.operations.simplification import simplify
+from geomech import *
+from geomech.operations.addition import Add, VAdd, MAdd
+from geomech.base.scalars import getScalars
+from geomech.operations.simplification import simplify
 
 add = Add()
 a, b, c, d, e = getScalars('a b c d e')
