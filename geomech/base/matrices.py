@@ -22,6 +22,14 @@ class MatrixExpr(Expr, ABC):
         from geomech.operations.addition import MAdd
         return MAdd(self, other)
 
+    def __sub__(self, other):
+        from geomech.operations.addition import MAdd
+        from geomech.operations.multiplication import SMMul
+        if other.type == Expression.MATRIX:
+            return MAdd(self, SMMul(other, -1))
+        else:
+            raise ExpressionMismatchError('Sub', self.type, other.type)
+
     def __mul__(self, other):
         from geomech.operations.multiplication import SMMul, MVMul, MMMul
         from geomech.base.scalars import Scalar

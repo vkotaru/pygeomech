@@ -21,6 +21,14 @@ class VectorExpr(Expr, ABC):
         from geomech.operations.addition import VAdd
         return VAdd(self, other)
 
+    def __sub__(self, other):
+        from geomech.operations.addition import VAdd
+        from geomech.operations.multiplication import SVMul
+        if other.type == Expression.VECTOR:
+            return VAdd(self, SVMul(other, -1))
+        else:
+            raise ExpressionMismatchError('Sub', self.type, other.type)
+
     def __mul__(self, other):
         from geomech.operations.multiplication import SVMul, VVMul, MVMul
         from geomech.base.scalars import Scalar
