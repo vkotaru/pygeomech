@@ -20,7 +20,7 @@ class Delta(UnaryNode, Expr, ABC):
         self.type = expr.type
 
     def __str__(self):
-        return '\delta{' + self.expr.__str__() + '}'
+        return '\\delta{' + self.expr.__str__() + '}'
 
     def __mul__(self, other):
         from geomech.operations.multiplication import Mul, SVMul, SMMul, VVMul, MVMul, MMMul
@@ -44,7 +44,7 @@ class Delta(UnaryNode, Expr, ABC):
             elif other.type == Expression.MATRIX:
                 return MVMul(self, other)
             else:
-                return UndefinedCaseError
+                raise UndefinedCaseError
 
         elif self.type == Expression.MATRIX:
             if other.type == Expression.SCALAR:
@@ -174,7 +174,7 @@ class Hat(UnaryNode, MatrixExpr, ABC):
         return Hat(self.expr.delta())
 
 
-class Vee(UnaryNode, MatrixExpr, ABC):
+class Vee(UnaryNode, VectorExpr, ABC):
     """Vee map: LieGroup G to Rn"""
 
     def __init__(self, expr):

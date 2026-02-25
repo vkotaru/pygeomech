@@ -41,7 +41,7 @@ class VectorExpr(Expr, ABC):
         elif other.type == Expression.MATRIX:
             return MVMul(self, other)
         else:
-            return UndefinedCaseError
+            raise UndefinedCaseError
 
     def dot(self, other):
         from geomech.operations.geometry import Dot
@@ -173,7 +173,7 @@ class S2(Vector, Manifold, ABC):
         return Cross(self.get_tangent_vector(), self)
 
 
-ZeroVector = Vector(s='0v', attr=['Constant, Zero'])
+ZeroVector = Vector(s='0v', attr=['Constant', 'Zero'])
 
 
 def getVectors(x, attr=None):

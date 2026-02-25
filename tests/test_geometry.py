@@ -1,7 +1,7 @@
 import pytest
 from geomech.base.expr import Expression
 from geomech.base.scalars import Scalar
-from geomech.base.vectors import Vector, getVectors
+from geomech.base.vectors import Vector, VectorExpr, getVectors
 from geomech.base.matrices import Matrix
 from geomech.operations.addition import Add, VAdd
 from geomech.operations.geometry import Delta, Dot, Cross, Hat, Vee
@@ -218,6 +218,11 @@ class TestVee:
         v = Vee(M)
         assert v.type == Expression.VECTOR
         assert str(v) == 'Vee(M)'
+
+    def test_is_vector_expr(self):
+        M = Matrix('M')
+        v = Vee(M)
+        assert isinstance(v, VectorExpr)
 
     def test_rejects_non_matrix(self):
         x = Vector('x')

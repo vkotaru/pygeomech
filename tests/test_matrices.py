@@ -1,7 +1,7 @@
 import pytest
 from geomech.base.expr import Expression
 from geomech.base.matrices import (
-    Matrix, MatrixExpr, SO3, ZeroMatrix, IdentityMatrix, O, I, getMatrices,
+    Matrix, MatrixExpr, SO3, SkewSymmMatrix, ZeroMatrix, IdentityMatrix, O, I, getMatrices,
 )
 from geomech.base.scalars import Scalar
 from geomech.base.vectors import Vector, TSO3
@@ -125,6 +125,26 @@ class TestMatrixOperations:
         dJ = J.diff()
         assert dJ.isConstant
         assert dJ.isZero
+
+
+class TestMatrixIntegrate:
+    def test_integrate_undoes_diff(self):
+        M = Matrix('M')
+        dM = M.diff()
+        result = dM.integrate()
+        assert str(result) == 'M'
+
+    def test_integrate_adds_prefix(self):
+        M = Matrix('M')
+        result = M.integrate()
+        assert str(result) == 'int_M'
+
+
+class TestSkewSymmMatrix:
+    def test_creation_with_name(self):
+        S = SkewSymmMatrix('S')
+        assert str(S) == 'S'
+        assert 'SkewSymmetry' in S.attr
 
 
 class TestSO3Manifold:

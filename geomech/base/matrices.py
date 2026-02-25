@@ -91,15 +91,15 @@ class Matrix(MatrixExpr, ABC):
         else:
             s = self.name
             if 'dot_' in s:
-                s.replace('dot_', '')
+                s = s.replace('dot_', '')
                 return Matrix(s=s, size=self.size)
             else:
                 return Matrix(s='int_' + s, size=self.size)
 
 
 class SkewSymmMatrix(Matrix, ABC):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, s=None, size=(3, 3), value=None, attr=None):
+        super().__init__(s, size, value, attr)
         self.attr.append('SkewSymmetry')
 
 

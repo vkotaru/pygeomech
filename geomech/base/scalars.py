@@ -84,7 +84,7 @@ class Scalar(ScalarExpr, ABC):
         else:
             s = self.name
             if 'dot_' in s:
-                s.replace('dot_', '')
+                s = s.replace('dot_', '')
                 return Scalar(s=s)
             else:
                 return Scalar(s='int_' + s)

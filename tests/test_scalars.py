@@ -147,6 +147,17 @@ class TestScalarOperations:
         assert a.has(a2)
         assert not a.has(b)
 
+    def test_integrate_undoes_diff(self):
+        a = Scalar('a')
+        da = a.diff()
+        result = da.integrate()
+        assert str(result) == 'a'
+
+    def test_integrate_adds_prefix(self):
+        a = Scalar('a')
+        result = a.integrate()
+        assert str(result) == 'int_a'
+
     def test_equality(self):
         a1 = Scalar('a')
         a2 = Scalar('a')

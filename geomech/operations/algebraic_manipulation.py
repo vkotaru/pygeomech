@@ -115,7 +115,7 @@ def efv(expr, vec):
             elif expr.left.has(vec):
                 return MMMul(SMMul(Hat(expr.right), -1), efv(expr.left, vec))
             elif expr.right.has(vec):
-                MMMul(Hat(expr.left), efv(expr.right, vec))
+                return MMMul(Hat(expr.left), efv(expr.right, vec))
             else:
                 return ZeroMatrix
 

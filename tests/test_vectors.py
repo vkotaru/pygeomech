@@ -182,6 +182,14 @@ class TestVectorOperations:
         assert str(result) == 'int_x'
 
 
+class TestZeroVector:
+    def test_zero_vector_is_constant(self):
+        assert ZeroVector.isConstant
+
+    def test_zero_vector_is_zero(self):
+        assert ZeroVector.isZero
+
+
 class TestS2Manifold:
     def test_s2_creation(self):
         q = S2('q')
