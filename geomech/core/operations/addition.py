@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from geomech.core.expressions import (
     ScalarExpr, VectorExpr, MatrixExpr,
 )
+from geomech.core.operations.mixins import _NaryMixin
 from geomech.core.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 
@@ -48,23 +49,6 @@ def _flatten_nodes(args, expected_type: type, expr_type: ExprType) -> list:
     if expr_type in (ExprType.VECTOR, ExprType.MATRIX):
         _check_sizes(nodes, expected_type.__name__)
     return nodes
-
-
-class _NaryMixin:
-    """Shared properties for n-ary addition operations."""
-
-    @property
-    def arity(self):
-        return len(self.nodes)
-
-    def __len__(self):
-        return len(self.nodes)
-
-    def __str__(self):
-        return '(' + '+'.join(str(n) for n in self.nodes) + ')'
-
-    def has(self, elem):
-        return any(n.has(elem) for n in self.nodes)
 
 
 # ---------------------------------------------------------------------------

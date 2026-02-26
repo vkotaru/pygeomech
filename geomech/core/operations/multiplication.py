@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 from geomech.core.expressions import (
     Expr, ScalarExpr, VectorExpr, MatrixExpr, Scalar,
 )
+from geomech.core.operations.mixins import _BinaryMixin
 from geomech.core.types import ExprType
-from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError, UndefinedCaseError
+from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 
 
 # ---------------------------------------------------------------------------
@@ -39,36 +40,6 @@ def _check_mul_sizes(op_name: str, l, r):
         raise SizeMismatchError(
             op_name, 'left cols=' + str(l_cols), 'right rows=' + str(r_rows)
         )
-
-
-class _BinaryMixin:
-    """Shared properties for binary operations using unified nodes."""
-
-    @property
-    def left(self):
-        return self.nodes[0]
-
-    @property
-    def right(self):
-        return self.nodes[1]
-
-    @property
-    def isConstant(self):
-        return self.left.isConstant and self.right.isConstant
-
-    @property
-    def isZero(self):
-        return self.left.isZero or self.right.isZero
-
-    @property
-    def arity(self):
-        return len(self.nodes)
-
-    def __len__(self):
-        return len(self.nodes)
-
-    def has(self, elem):
-        return any(n.has(elem) for n in self.nodes)
 
 
 # ---------------------------------------------------------------------------
@@ -218,35 +189,3 @@ class VVMul(_BinaryMixin, Expr):
 
     def __str__(self):
         return str(self.left) + str(self.right)
-
-    def __add__(self, other):
-        from geomech.core.operations.addition import Add, MAdd
-        if self._result_type == ExprType.SCALAR:
-            return Add(self, other)
-        elif self._result_type == ExprType.MATRIX:
-            return MAdd(self, other)
-        else:
-            raise UndefinedCaseError
-
-    def __mul__(self, other):
-        other = _wrap_numeric(other)
-        if self._result_type == ExprType.SCALAR:
-            if other.type == ExprType.SCALAR:
-                return Mul(self, other)
-            elif other.type == ExprType.VECTOR:
-                return SVMul(self, other)
-            elif other.type == ExprType.MATRIX:
-                return SMMul(self, other)
-            else:
-                raise UndefinedCaseError
-        elif self._result_type == ExprType.MATRIX:
-            if other.type == ExprType.SCALAR:
-                return SMMul(self, other)
-            elif other.type == ExprType.VECTOR:
-                return MVMul(self, other)
-            elif other.type == ExprType.MATRIX:
-                return MMMul(self, other)
-            else:
-                raise UndefinedCaseError
-        else:
-            raise UndefinedCaseError
