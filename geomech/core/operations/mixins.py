@@ -134,19 +134,15 @@ class _BinaryMixin(_BaseMixin):
 
 
 # ---------------------------------------------------------------------------
-# Calculus unary (Variation, TimeDerivative, TimeIntegral)
+# Unary (fixed output type — Hat, Vee, etc.)
 # ---------------------------------------------------------------------------
 
-class _CalcUnaryMixin(_BaseMixin):
-    """Shared properties for type-preserving calculus unary nodes."""
+class _UnaryMixin(_BaseMixin):
+    """Shared properties for unary operation nodes with fixed output type."""
 
     @property
     def expr(self):
         return self.nodes[0]
-
-    @property
-    def type(self):
-        return self.expr.type
 
     @property
     def isConstant(self):
@@ -155,3 +151,15 @@ class _CalcUnaryMixin(_BaseMixin):
     @property
     def isZero(self):
         return self.expr.isZero
+
+
+# ---------------------------------------------------------------------------
+# Calculus unary (Variation, TimeDerivative, TimeIntegral, Delta)
+# ---------------------------------------------------------------------------
+
+class _CalcUnaryMixin(_UnaryMixin):
+    """Type-preserving unary — delegates type to inner expression."""
+
+    @property
+    def type(self):
+        return self.expr.type

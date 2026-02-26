@@ -1,230 +1,635 @@
 import pytest
-from geomech.base.expr import Expression
-from geomech.base.scalars import Scalar
-from geomech.base.vectors import Vector, VectorExpr, getVectors
-from geomech.base.matrices import Matrix
-from geomech.operations.addition import Add, VAdd
-from geomech.operations.geometry import Delta, Dot, Cross, Hat, Vee
-from geomech.operations.multiplication import Mul
+from geomech.core.expressions import (
+    Scalar, Vector, Matrix,
+    getScalars, getVectors, getMatrices,
+)
+from geomech.core.operations.addition import Add, VAdd, MAdd
+from geomech.core.operations.multiplication import (
+    Mul, SVMul, MVMul, VVMul,
+)
+from geomech.core.operations.geometry import Delta, Dot, Cross, Hat, Vee, Transpose
+from geomech.core.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError
 
 
-class TestDelta:
-    def test_creation(self):
+# ===================================================================
+# Delta
+# ===================================================================
+
+class TestDeltaType:
+    def test_scalar(self):
+        a = Scalar('a')
+        assert Delta(a).type == ExprType.SCALAR
+
+    def test_vector(self):
+        x = Vector('x')
+        assert Delta(x).type == ExprType.VECTOR
+
+    def test_matrix(self):
+        M = Matrix('M')
+        assert Delta(M).type == ExprType.MATRIX
+
+
+class TestDeltaConstruction:
+    def test_expr(self):
         x = Vector('x')
         d = Delta(x)
-        assert d.type == Expression.VECTOR
-        assert str(d) == '\\delta{x}'
+        assert d.expr == x
 
-    def test_preserves_type_scalar(self):
+    def test_nodes(self):
         a = Scalar('a')
         d = Delta(a)
-        assert d.type == Expression.SCALAR
+        assert d.nodes == [a]
 
-    def test_preserves_type_matrix(self):
+    def test_arity(self):
+        x = Vector('x')
+        assert Delta(x).arity == 1
+
+    def test_len(self):
+        x = Vector('x')
+        assert len(Delta(x)) == 1
+
+
+class TestDeltaStr:
+    def test_scalar(self):
+        a = Scalar('a')
+        assert str(Delta(a)) == '\\delta{a}'
+
+    def test_vector(self):
+        x = Vector('x')
+        assert str(Delta(x)) == '\\delta{x}'
+
+    def test_matrix(self):
         M = Matrix('M')
-        d = Delta(M)
-        assert d.type == Expression.MATRIX
+        assert str(Delta(M)) == '\\delta{M}'
 
-    def test_diff(self):
+
+class TestDeltaProperties:
+    def test_is_constant_true(self):
+        c = Scalar('c', attr=['Constant'])
+        assert Delta(c).isConstant is True
+
+    def test_is_constant_false(self):
+        a = Scalar('a')
+        assert Delta(a).isConstant is False
+
+    def test_is_zero_true(self):
+        z = Vector('0', attr=['Constant', 'Zero'])
+        assert Delta(z).isZero is True
+
+    def test_is_zero_false(self):
         x = Vector('x')
-        d = Delta(x)
-        result = d.diff()
-        assert isinstance(result, Delta)
+        assert Delta(x).isZero is False
 
-    def test_integrate(self):
+
+class TestDeltaHas:
+    def test_has_inner(self):
         x = Vector('x')
-        d = Delta(x)
-        result = d.integrate()
-        assert isinstance(result, Delta)
+        assert Delta(x).has(x) is True
+
+    def test_has_missing(self):
+        x = Vector('x')
+        y = Vector('y')
+        assert Delta(x).has(y) is False
 
 
-class TestDot:
-    def test_creation(self):
+class TestDeltaEqHash:
+    def test_eq(self):
+        x = Vector('x')
+        assert Delta(x) == Delta(x)
+
+    def test_neq(self):
+        x = Vector('x')
+        y = Vector('y')
+        assert Delta(x) != Delta(y)
+
+    def test_hash(self):
+        x = Vector('x')
+        assert hash(Delta(x)) == hash(Delta(x))
+
+    def test_set(self):
+        x = Vector('x')
+        assert len({Delta(x), Delta(x)}) == 1
+
+
+class TestDeltaOperators:
+    def test_add_scalar(self):
+        a, b = getScalars('a b')
+        result = Delta(a) + b
+        assert isinstance(result, Add)
+
+    def test_add_vector(self):
+        x, y = getVectors(['x', 'y'])
+        result = Delta(x) + y
+        assert isinstance(result, VAdd)
+
+    def test_add_matrix(self):
+        M, N = getMatrices('M N')
+        result = Delta(M) + N
+        assert isinstance(result, MAdd)
+
+    def test_sub_scalar(self):
+        a, b = getScalars('a b')
+        result = Delta(a) - b
+        assert isinstance(result, Add)
+
+    def test_sub_vector(self):
+        x, y = getVectors(['x', 'y'])
+        result = Delta(x) - y
+        assert isinstance(result, VAdd)
+
+    def test_mul_scalar_scalar(self):
+        a, b = getScalars('a b')
+        result = Delta(a) * b
+        assert isinstance(result, Mul)
+
+    def test_mul_vector_scalar(self):
+        x = Vector('x')
+        a = Scalar('a')
+        result = Delta(x) * a
+        assert isinstance(result, SVMul)
+
+    def test_mul_numeric(self):
+        a = Scalar('a')
+        result = Delta(a) * 3
+        assert isinstance(result, Mul)
+
+
+# ===================================================================
+# Dot
+# ===================================================================
+
+class TestDotType:
+    def test_type(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y).type == ExprType.SCALAR
+
+
+class TestDotConstruction:
+    def test_left_right(self):
         x, y = getVectors(['x', 'y'])
         d = Dot(x, y)
-        assert d.type == Expression.SCALAR
-        assert str(d) == 'Dot(x,y)'
+        assert d.left == x
+        assert d.right == y
 
-    def test_is_constant_when_both_constant(self):
+    def test_arity(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y).arity == 2
+
+    def test_len(self):
+        x, y = getVectors(['x', 'y'])
+        assert len(Dot(x, y)) == 2
+
+
+class TestDotStr:
+    def test_str(self):
+        x, y = getVectors(['x', 'y'])
+        assert str(Dot(x, y)) == 'Dot(x,y)'
+
+
+class TestDotProperties:
+    def test_is_constant_both(self):
         e1 = Vector('e1', attr=['Constant'])
         e2 = Vector('e2', attr=['Constant'])
-        d = Dot(e1, e2)
-        assert d.isConstant
+        assert Dot(e1, e2).isConstant is True
 
-    def test_is_zero_when_one_zero(self):
+    def test_is_constant_one(self):
+        e1 = Vector('e1', attr=['Constant'])
+        x = Vector('x')
+        assert Dot(e1, x).isConstant is False
+
+    def test_is_zero_left(self):
+        z = Vector('0', attr=['Constant', 'Zero'])
+        x = Vector('x')
+        assert Dot(z, x).isZero is True
+
+    def test_is_zero_right(self):
         x = Vector('x')
         z = Vector('0', attr=['Constant', 'Zero'])
-        d = Dot(x, z)
-        assert d.isZero
+        assert Dot(x, z).isZero is True
 
-    def test_rejects_non_vectors(self):
+    def test_is_zero_neither(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y).isZero is False
+
+
+class TestDotHas:
+    def test_has_left(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y).has(x) is True
+
+    def test_has_right(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y).has(y) is True
+
+    def test_has_missing(self):
+        x, y = getVectors(['x', 'y'])
+        z = Vector('z')
+        assert Dot(x, y).has(z) is False
+
+
+class TestDotEqHash:
+    def test_eq(self):
+        x, y = getVectors(['x', 'y'])
+        assert Dot(x, y) == Dot(x, y)
+
+    def test_neq(self):
+        x, y, z = getVectors(['x', 'y', 'z'])
+        assert Dot(x, y) != Dot(x, z)
+
+    def test_hash(self):
+        x, y = getVectors(['x', 'y'])
+        assert hash(Dot(x, y)) == hash(Dot(x, y))
+
+
+class TestDotTypeMismatch:
+    def test_scalar_vector(self):
         a = Scalar('a')
         x = Vector('x')
         with pytest.raises(ExpressionMismatchError):
             Dot(a, x)
 
-    def test_delta_both_variable(self):
+    def test_vector_matrix(self):
+        x = Vector('x')
+        M = Matrix('M')
+        with pytest.raises(ExpressionMismatchError):
+            Dot(x, M)
+
+
+# ===================================================================
+# Cross
+# ===================================================================
+
+class TestCrossType:
+    def test_type(self):
         x, y = getVectors(['x', 'y'])
-        d = Dot(x, y).delta()
-        assert isinstance(d, Add)
-        assert d.N == 2
-        assert isinstance(d.nodes[0], Dot)
-        assert isinstance(d.nodes[1], Dot)
-
-    def test_delta_both_variable_str(self):
-        x, y = getVectors(['x', 'y'])
-        d = Dot(x, y).delta()
-        assert str(d) == '(Dot(\\delta{x},y)+Dot(x,\\delta{y}))'
-
-    def test_delta_constant_left(self):
-        e3 = Vector('e3', attr=['Constant'])
-        x = Vector('x')
-        d = Dot(e3, x).delta()
-        assert isinstance(d, Dot)
-
-    def test_delta_constant_left_str(self):
-        e3 = Vector('e3', attr=['Constant'])
-        x = Vector('x')
-        d = Dot(e3, x).delta()
-        assert str(d) == 'Dot(e3,\\delta{x})'
-
-    def test_delta_constant_right(self):
-        x = Vector('x')
-        e3 = Vector('e3', attr=['Constant'])
-        d = Dot(x, e3).delta()
-        assert isinstance(d, Dot)
-
-    def test_delta_constant_right_str(self):
-        x = Vector('x')
-        e3 = Vector('e3', attr=['Constant'])
-        d = Dot(x, e3).delta()
-        assert str(d) == 'Dot(\\delta{x},e3)'
-
-    def test_delta_self_dot(self):
-        x = Vector('x')
-        d = Dot(x, x).delta()
-        # x.x variation = 2 * Dot(delta_x, x), returned as Mul(Dot(...), 2)
-        assert isinstance(d, Mul)
-
-    def test_delta_self_dot_str(self):
-        x = Vector('x')
-        d = Dot(x, x).delta()
-        assert str(d) == 'Dot(\\delta{x},x)(2)'
+        assert Cross(x, y).type == ExprType.VECTOR
 
 
-class TestCross:
-    def test_creation(self):
+class TestCrossConstruction:
+    def test_left_right(self):
         x, y = getVectors(['x', 'y'])
         c = Cross(x, y)
-        assert c.type == Expression.VECTOR
-        assert str(c) == 'Cross(x,y)'
+        assert c.left == x
+        assert c.right == y
 
-    def test_rejects_non_vectors(self):
+    def test_arity(self):
+        x, y = getVectors(['x', 'y'])
+        assert Cross(x, y).arity == 2
+
+    def test_len(self):
+        x, y = getVectors(['x', 'y'])
+        assert len(Cross(x, y)) == 2
+
+
+class TestCrossStr:
+    def test_str(self):
+        x, y = getVectors(['x', 'y'])
+        assert str(Cross(x, y)) == 'Cross(x,y)'
+
+
+class TestCrossProperties:
+    def test_is_constant_both(self):
+        e1 = Vector('e1', attr=['Constant'])
+        e2 = Vector('e2', attr=['Constant'])
+        assert Cross(e1, e2).isConstant is True
+
+    def test_is_constant_one(self):
+        e1 = Vector('e1', attr=['Constant'])
+        x = Vector('x')
+        assert Cross(e1, x).isConstant is False
+
+    def test_is_zero_left(self):
+        z = Vector('0', attr=['Constant', 'Zero'])
+        x = Vector('x')
+        assert Cross(z, x).isZero is True
+
+    def test_is_zero_right(self):
+        x = Vector('x')
+        z = Vector('0', attr=['Constant', 'Zero'])
+        assert Cross(x, z).isZero is True
+
+    def test_is_zero_neither(self):
+        x, y = getVectors(['x', 'y'])
+        assert Cross(x, y).isZero is False
+
+
+class TestCrossHas:
+    def test_has_left(self):
+        x, y = getVectors(['x', 'y'])
+        assert Cross(x, y).has(x) is True
+
+    def test_has_missing(self):
+        x, y = getVectors(['x', 'y'])
+        z = Vector('z')
+        assert Cross(x, y).has(z) is False
+
+
+class TestCrossEqHash:
+    def test_eq(self):
+        x, y = getVectors(['x', 'y'])
+        assert Cross(x, y) == Cross(x, y)
+
+    def test_neq(self):
+        x, y = getVectors(['x', 'y'])
+        assert Cross(x, y) != Cross(y, x)
+
+
+class TestCrossTypeMismatch:
+    def test_scalar_vector(self):
         a = Scalar('a')
         x = Vector('x')
         with pytest.raises(ExpressionMismatchError):
             Cross(a, x)
 
-    def test_delta_both_variable(self):
-        x, y = getVectors(['x', 'y'])
-        d = Cross(x, y).delta()
-        assert isinstance(d, VAdd)
-        assert d.N == 2
-        assert isinstance(d.nodes[0], Cross)
-        assert isinstance(d.nodes[1], Cross)
 
-    def test_delta_both_variable_str(self):
-        x, y = getVectors(['x', 'y'])
-        d = Cross(x, y).delta()
-        assert str(d) == '(Cross(\\delta{x},y)+Cross(x,\\delta{y}))'
+# ===================================================================
+# Hat
+# ===================================================================
 
-    def test_delta_constant_left(self):
-        e3 = Vector('e3', attr=['Constant'])
+class TestHatType:
+    def test_type(self):
         x = Vector('x')
-        d = Cross(e3, x).delta()
-        assert isinstance(d, Cross)
+        assert Hat(x).type == ExprType.MATRIX
 
-    def test_delta_constant_left_str(self):
-        e3 = Vector('e3', attr=['Constant'])
+
+class TestHatConstruction:
+    def test_expr(self):
         x = Vector('x')
-        d = Cross(e3, x).delta()
-        assert str(d) == 'Cross(e3,\\delta{x})'
+        assert Hat(x).expr == x
 
-    def test_delta_constant_right(self):
+    def test_arity(self):
         x = Vector('x')
-        e3 = Vector('e3', attr=['Constant'])
-        d = Cross(x, e3).delta()
-        assert isinstance(d, Cross)
+        assert Hat(x).arity == 1
 
-    def test_delta_constant_right_str(self):
+    def test_len(self):
         x = Vector('x')
-        e3 = Vector('e3', attr=['Constant'])
-        d = Cross(x, e3).delta()
-        assert str(d) == 'Cross(\\delta{x},e3)'
+        assert len(Hat(x)) == 1
 
-    def test_diff_both_variable(self):
-        x, y = getVectors(['x', 'y'])
-        d = Cross(x, y).diff()
-        assert isinstance(d, VAdd)
-        assert d.N == 2
-        assert isinstance(d.nodes[0], Cross)
-        assert isinstance(d.nodes[1], Cross)
 
-    def test_diff_both_variable_str(self):
-        x, y = getVectors(['x', 'y'])
-        d = Cross(x, y).diff()
-        assert str(d) == '(Cross(dot_x,y)+Cross(x,dot_y))'
-
-    def test_diff_constant_left(self):
-        e3 = Vector('e3', attr=['Constant'])
+class TestHatStr:
+    def test_str(self):
         x = Vector('x')
-        d = Cross(e3, x).diff()
-        assert isinstance(d, Cross)
+        assert str(Hat(x)) == 'Hat(x)'
 
-    def test_diff_constant_left_str(self):
-        e3 = Vector('e3', attr=['Constant'])
+
+class TestHatProperties:
+    def test_is_constant_true(self):
+        e1 = Vector('e1', attr=['Constant'])
+        assert Hat(e1).isConstant is True
+
+    def test_is_constant_false(self):
         x = Vector('x')
-        d = Cross(e3, x).diff()
-        assert str(d) == 'Cross(e3,dot_x)'
+        assert Hat(x).isConstant is False
 
+    def test_is_zero_true(self):
+        z = Vector('0', attr=['Constant', 'Zero'])
+        assert Hat(z).isZero is True
 
-class TestHat:
-    def test_creation(self):
+    def test_is_zero_false(self):
         x = Vector('x')
-        h = Hat(x)
-        assert h.type == Expression.MATRIX
-        assert str(h) == 'Hat(x)'
+        assert Hat(x).isZero is False
 
-    def test_rejects_non_vector(self):
+
+class TestHatHas:
+    def test_has_inner(self):
+        x = Vector('x')
+        assert Hat(x).has(x) is True
+
+    def test_has_missing(self):
+        x = Vector('x')
+        y = Vector('y')
+        assert Hat(x).has(y) is False
+
+
+class TestHatTypeMismatch:
+    def test_rejects_scalar(self):
         a = Scalar('a')
         with pytest.raises(ExpressionMismatchError):
             Hat(a)
 
-    def test_delta(self):
-        x = Vector('x')
-        d = Hat(x).delta()
-        assert isinstance(d, Hat)
-
-    def test_delta_str(self):
-        x = Vector('x')
-        d = Hat(x).delta()
-        assert str(d) == 'Hat(\\delta{x})'
-
-
-class TestVee:
-    def test_creation(self):
+    def test_rejects_matrix(self):
         M = Matrix('M')
-        v = Vee(M)
-        assert v.type == Expression.VECTOR
-        assert str(v) == 'Vee(M)'
+        with pytest.raises(ExpressionMismatchError):
+            Hat(M)
 
-    def test_is_vector_expr(self):
+
+# ===================================================================
+# Vee
+# ===================================================================
+
+class TestVeeType:
+    def test_type(self):
         M = Matrix('M')
-        v = Vee(M)
-        assert isinstance(v, VectorExpr)
+        assert Vee(M).type == ExprType.VECTOR
 
-    def test_rejects_non_matrix(self):
+
+class TestVeeConstruction:
+    def test_expr(self):
+        M = Matrix('M')
+        assert Vee(M).expr == M
+
+    def test_arity(self):
+        M = Matrix('M')
+        assert Vee(M).arity == 1
+
+    def test_len(self):
+        M = Matrix('M')
+        assert len(Vee(M)) == 1
+
+
+class TestVeeStr:
+    def test_str(self):
+        M = Matrix('M')
+        assert str(Vee(M)) == 'Vee(M)'
+
+
+class TestVeeProperties:
+    def test_is_constant_true(self):
+        C = Matrix('C', attr=['Constant'])
+        assert Vee(C).isConstant is True
+
+    def test_is_constant_false(self):
+        M = Matrix('M')
+        assert Vee(M).isConstant is False
+
+    def test_is_zero_true(self):
+        Z = Matrix('O', attr=['Constant', 'Zero'])
+        assert Vee(Z).isZero is True
+
+    def test_is_zero_false(self):
+        M = Matrix('M')
+        assert Vee(M).isZero is False
+
+
+class TestVeeHas:
+    def test_has_inner(self):
+        M = Matrix('M')
+        assert Vee(M).has(M) is True
+
+    def test_has_missing(self):
+        M = Matrix('M')
+        N = Matrix('N')
+        assert Vee(M).has(N) is False
+
+
+class TestVeeTypeMismatch:
+    def test_rejects_scalar(self):
+        a = Scalar('a')
+        with pytest.raises(ExpressionMismatchError):
+            Vee(a)
+
+    def test_rejects_vector(self):
         x = Vector('x')
         with pytest.raises(ExpressionMismatchError):
             Vee(x)
+
+
+# ===================================================================
+# Transpose
+# ===================================================================
+
+class TestTransposeType:
+    def test_vector(self):
+        x = Vector('x')
+        assert Transpose(x).type == ExprType.VECTOR
+
+    def test_matrix(self):
+        M = Matrix('M')
+        assert Transpose(M).type == ExprType.MATRIX
+
+    def test_scalar(self):
+        a = Scalar('a')
+        assert Transpose(a).type == ExprType.SCALAR
+
+    def test_none(self):
+        assert Transpose().type is None
+
+
+class TestTransposeConstruction:
+    def test_expr(self):
+        x = Vector('x')
+        assert Transpose(x).expr == x
+
+    def test_expr_none(self):
+        assert Transpose().expr is None
+
+    def test_arity(self):
+        x = Vector('x')
+        assert Transpose(x).arity == 1
+
+    def test_len(self):
+        x = Vector('x')
+        assert len(Transpose(x)) == 1
+
+
+class TestTransposeStr:
+    def test_vector(self):
+        x = Vector('x')
+        assert str(Transpose(x)) == "(x)'"
+
+    def test_matrix(self):
+        M = Matrix('M')
+        assert str(Transpose(M)) == "(M)'"
+
+
+class TestTransposeProperties:
+    def test_is_constant_true(self):
+        e1 = Vector('e1', attr=['Constant'])
+        assert Transpose(e1).isConstant is True
+
+    def test_is_constant_false(self):
+        x = Vector('x')
+        assert Transpose(x).isConstant is False
+
+    def test_is_constant_none(self):
+        assert Transpose().isConstant is False
+
+    def test_is_zero_true(self):
+        z = Vector('0', attr=['Constant', 'Zero'])
+        assert Transpose(z).isZero is True
+
+    def test_is_zero_false(self):
+        x = Vector('x')
+        assert Transpose(x).isZero is False
+
+    def test_is_zero_none(self):
+        assert Transpose().isZero is False
+
+    def test_size_vector(self):
+        x = Vector('x', size=(3,))
+        assert Transpose(x).size == (3,)
+
+    def test_size_matrix(self):
+        M = Matrix('M', size=(3, 4))
+        assert Transpose(M).size == (3, 4)
+
+    def test_size_none(self):
+        assert Transpose().size is None
+
+
+class TestTransposeHas:
+    def test_has_inner(self):
+        x = Vector('x')
+        assert Transpose(x).has(x) is True
+
+    def test_has_missing(self):
+        x = Vector('x')
+        y = Vector('y')
+        assert Transpose(x).has(y) is False
+
+
+class TestTransposeEqHash:
+    def test_eq(self):
+        x = Vector('x')
+        assert Transpose(x) == Transpose(x)
+
+    def test_neq(self):
+        x = Vector('x')
+        y = Vector('y')
+        assert Transpose(x) != Transpose(y)
+
+    def test_hash(self):
+        x = Vector('x')
+        assert hash(Transpose(x)) == hash(Transpose(x))
+
+
+class TestTransposeOperators:
+    def test_add_vector(self):
+        x, y = getVectors(['x', 'y'])
+        result = Transpose(x) + y
+        assert isinstance(result, VAdd)
+
+    def test_add_matrix(self):
+        M, N = getMatrices('M N')
+        result = Transpose(M) + N
+        assert isinstance(result, MAdd)
+
+    def test_sub_vector(self):
+        x, y = getVectors(['x', 'y'])
+        result = Transpose(x) - y
+        assert isinstance(result, VAdd)
+
+    def test_mul_scalar(self):
+        x = Vector('x')
+        a = Scalar('a')
+        result = Transpose(x) * a
+        assert isinstance(result, Transpose)
+        assert isinstance(result.expr, SVMul)
+
+    def test_mul_vector(self):
+        x, y = getVectors(['x', 'y'])
+        result = Transpose(x) * y
+        assert isinstance(result, VVMul)
+        assert result.type == ExprType.SCALAR
+
+    def test_mul_matrix(self):
+        x = Vector('x')
+        M = Matrix('M')
+        result = Transpose(x) * M
+        assert isinstance(result, MVMul)
+
+    def test_mul_numeric(self):
+        x = Vector('x')
+        result = Transpose(x) * 2
+        assert isinstance(result, Transpose)
