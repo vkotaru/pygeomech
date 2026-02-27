@@ -27,12 +27,21 @@ class Expr:
         raise NotImplementedError
 
     def delta(self):
-        raise NotImplementedError
+        from geomech.core.operations.calculus import Variation
+        return Variation(self)
 
     def t_diff(self):
-        raise NotImplementedError
+        from geomech.core.operations.calculus import TimeDerivative
+        return TimeDerivative(self)
 
     def t_integrate(self):
+        from geomech.core.operations.calculus import TimeIntegral
+        return TimeIntegral(self)
+
+    def get_variation_vector(self):
+        return self.delta()
+
+    def get_tangent_vector(self):
         raise NotImplementedError
 
     def has(self, elem):
@@ -124,8 +133,8 @@ class Scalar(ScalarExpr):
         if self.isConstant:
             return Scalar('0', value=0)
         else:
-            from geomech.core.operations import Delta
-            return Delta(self)
+            from geomech.core.operations import Variation
+            return Variation(self)
 
     def t_diff(self):
         if self.isConstant:
@@ -255,8 +264,8 @@ class Vector(VectorExpr):
         if self.isOnes or self.isZero or self.isConstant:
             return Vector('0', attr=['Constant', 'Zero'])
         else:
-            from geomech.core.operations import Delta
-            return Delta(self)
+            from geomech.core.operations import Variation
+            return Variation(self)
 
     def t_diff(self):
         if self.isConstant:
@@ -297,12 +306,12 @@ class TSO3(Vector):
         self.attr.append('TangentVector')
 
     def delta(self, substitute=False):
-        from geomech.core.operations import Hat, Delta
+        from geomech.core.operations import Hat, Variation
         if substitute:
             eta = self.SO3.get_variation_vector()
             return Hat(self) * eta + eta.t_diff()
         else:
-            return Delta(self)
+            return Variation(self)
 
 
 class TS2(Vector):
@@ -316,11 +325,11 @@ class TS2(Vector):
         self.attr.append('TangentVector')
 
     def delta(self, substitute=False):
-        from geomech.core.operations import Delta
+        from geomech.core.operations import Variation
         if substitute:
             raise NotImplementedError
         else:
-            return Delta(self)
+            return Variation(self)
 
 
 class S2(Vector):
@@ -435,8 +444,8 @@ class Matrix(MatrixExpr):
         if self.isOnes or self.isZero or self.isConstant:
             return Matrix('O', attr=['Constant', 'Zero'])
         else:
-            from geomech.core.operations import Delta
-            return Delta(self)
+            from geomech.core.operations import Variation
+            return Variation(self)
 
     def t_diff(self):
         if self.isConstant:

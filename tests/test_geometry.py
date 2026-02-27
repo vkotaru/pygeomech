@@ -7,151 +7,152 @@ from geomech.core.operations.addition import Add, VAdd, MAdd
 from geomech.core.operations.multiplication import (
     Mul, SVMul, MVMul, VVMul,
 )
-from geomech.core.operations.geometry import Delta, Dot, Cross, Hat, Vee, Transpose
+from geomech.core.operations.calculus import Variation
+from geomech.core.operations.geometry import Dot, Cross, Hat, Vee, Transpose
 from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError
 
 
 # ===================================================================
-# Delta
+# Variation
 # ===================================================================
 
-class TestDeltaType:
+class TestVariationType:
     def test_scalar(self):
         a = Scalar('a')
-        assert Delta(a).type == ExprType.SCALAR
+        assert Variation(a).type == ExprType.SCALAR
 
     def test_vector(self):
         x = Vector('x')
-        assert Delta(x).type == ExprType.VECTOR
+        assert Variation(x).type == ExprType.VECTOR
 
     def test_matrix(self):
         M = Matrix('M')
-        assert Delta(M).type == ExprType.MATRIX
+        assert Variation(M).type == ExprType.MATRIX
 
 
-class TestDeltaConstruction:
+class TestVariationConstruction:
     def test_expr(self):
         x = Vector('x')
-        d = Delta(x)
+        d = Variation(x)
         assert d.expr == x
 
     def test_nodes(self):
         a = Scalar('a')
-        d = Delta(a)
+        d = Variation(a)
         assert d.nodes == [a]
 
     def test_arity(self):
         x = Vector('x')
-        assert Delta(x).arity == 1
+        assert Variation(x).arity == 1
 
     def test_len(self):
         x = Vector('x')
-        assert len(Delta(x)) == 1
+        assert len(Variation(x)) == 1
 
 
-class TestDeltaStr:
+class TestVariationStr:
     def test_scalar(self):
         a = Scalar('a')
-        assert str(Delta(a)) == '\\delta{a}'
+        assert str(Variation(a)) == '\\delta{a}'
 
     def test_vector(self):
         x = Vector('x')
-        assert str(Delta(x)) == '\\delta{x}'
+        assert str(Variation(x)) == '\\delta{x}'
 
     def test_matrix(self):
         M = Matrix('M')
-        assert str(Delta(M)) == '\\delta{M}'
+        assert str(Variation(M)) == '\\delta{M}'
 
 
-class TestDeltaProperties:
+class TestVariationProperties:
     def test_is_constant_true(self):
         c = Scalar('c', attr=['Constant'])
-        assert Delta(c).isConstant is True
+        assert Variation(c).isConstant is True
 
     def test_is_constant_false(self):
         a = Scalar('a')
-        assert Delta(a).isConstant is False
+        assert Variation(a).isConstant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Delta(z).isZero is True
+        assert Variation(z).isZero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert Delta(x).isZero is False
+        assert Variation(x).isZero is False
 
 
-class TestDeltaHas:
+class TestVariationHas:
     def test_has_inner(self):
         x = Vector('x')
-        assert Delta(x).has(x) is True
+        assert Variation(x).has(x) is True
 
     def test_has_missing(self):
         x = Vector('x')
         y = Vector('y')
-        assert Delta(x).has(y) is False
+        assert Variation(x).has(y) is False
 
 
-class TestDeltaEqHash:
+class TestVariationEqHash:
     def test_eq(self):
         x = Vector('x')
-        assert Delta(x) == Delta(x)
+        assert Variation(x) == Variation(x)
 
     def test_neq(self):
         x = Vector('x')
         y = Vector('y')
-        assert Delta(x) != Delta(y)
+        assert Variation(x) != Variation(y)
 
     def test_hash(self):
         x = Vector('x')
-        assert hash(Delta(x)) == hash(Delta(x))
+        assert hash(Variation(x)) == hash(Variation(x))
 
     def test_set(self):
         x = Vector('x')
-        assert len({Delta(x), Delta(x)}) == 1
+        assert len({Variation(x), Variation(x)}) == 1
 
 
-class TestDeltaOperators:
+class TestVariationOperators:
     def test_add_scalar(self):
         a, b = getScalars('a b')
-        result = Delta(a) + b
+        result = Variation(a) + b
         assert isinstance(result, Add)
 
     def test_add_vector(self):
         x, y = getVectors(['x', 'y'])
-        result = Delta(x) + y
+        result = Variation(x) + y
         assert isinstance(result, VAdd)
 
     def test_add_matrix(self):
         M, N = getMatrices('M N')
-        result = Delta(M) + N
+        result = Variation(M) + N
         assert isinstance(result, MAdd)
 
     def test_sub_scalar(self):
         a, b = getScalars('a b')
-        result = Delta(a) - b
+        result = Variation(a) - b
         assert isinstance(result, Add)
 
     def test_sub_vector(self):
         x, y = getVectors(['x', 'y'])
-        result = Delta(x) - y
+        result = Variation(x) - y
         assert isinstance(result, VAdd)
 
     def test_mul_scalar_scalar(self):
         a, b = getScalars('a b')
-        result = Delta(a) * b
+        result = Variation(a) * b
         assert isinstance(result, Mul)
 
     def test_mul_vector_scalar(self):
         x = Vector('x')
         a = Scalar('a')
-        result = Delta(x) * a
+        result = Variation(x) * a
         assert isinstance(result, SVMul)
 
     def test_mul_numeric(self):
         a = Scalar('a')
-        result = Delta(a) * 3
+        result = Variation(a) * 3
         assert isinstance(result, Mul)
 
 

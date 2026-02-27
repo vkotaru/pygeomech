@@ -6,7 +6,8 @@ from geomech.core.base.expressions import (
 )
 from geomech.core.operations.addition import VAdd
 from geomech.core.operations.multiplication import SVMul, VVMul
-from geomech.core.operations.geometry import Delta, Dot, Cross, Transpose
+from geomech.core.operations.calculus import Variation
+from geomech.core.operations.geometry import Dot, Cross, Transpose
 
 
 class TestVectorCreation:
@@ -145,7 +146,7 @@ class TestVectorOperations:
     def test_delta_variable(self):
         x = Vector('x')
         d = x.delta()
-        assert isinstance(d, Delta)
+        assert isinstance(d, Variation)
 
     def test_delta_constant(self):
         e3 = Vector('e3', attr=['Constant'])

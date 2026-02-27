@@ -6,7 +6,7 @@ from geomech.core.base.expressions import (
 )
 from geomech.core.operations.addition import MAdd
 from geomech.core.operations.multiplication import SMMul, MVMul, MMMul
-from geomech.core.operations.geometry import Delta
+from geomech.core.operations.calculus import Variation
 
 
 class TestMatrixCreation:
@@ -105,7 +105,7 @@ class TestMatrixOperations:
     def test_delta_variable(self):
         M = Matrix('M')
         d = M.delta()
-        assert isinstance(d, Delta)
+        assert isinstance(d, Variation)
 
     def test_delta_constant(self):
         J = Matrix('J', attr=['Constant'])
