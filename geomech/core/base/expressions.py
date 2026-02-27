@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 
-from geomech.core.types import ExprType, ExprFlags, ManifoldInfo
+from geomech.core.base.types import ExprType, ExprFlags, ManifoldInfo
 from geomech.utils.errors import ExpressionMismatchError, UndefinedCaseError
 
 

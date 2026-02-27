@@ -1,5 +1,5 @@
 import pytest
-from geomech.core.expressions import (
+from geomech.core.base.expressions import (
     Scalar, Vector, Matrix,
     getScalars, getVectors, getMatrices,
 )
@@ -8,7 +8,7 @@ from geomech.core.operations.multiplication import (
     Mul, SVMul, SMMul, MVMul,
 )
 from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
-from geomech.core.types import ExprType
+from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError
 
 

@@ -1,6 +1,6 @@
 import pytest
-from geomech.core.types import ExprType
-from geomech.core.expressions import (
+from geomech.core.base.types import ExprType
+from geomech.core.base.expressions import (
     Matrix, SO3, SkewSymmMatrix, ZeroMatrix, IdentityMatrix, O, I, getMatrices,
     Scalar, Vector, TSO3,
 )

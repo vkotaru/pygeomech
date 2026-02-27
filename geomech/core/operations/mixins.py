@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from geomech.core.types import ExprType
+from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError, UndefinedCaseError
 
 
@@ -109,7 +109,7 @@ class _NaryMixin(_BaseMixin):
         return '(' + '+'.join(str(n) for n in self.nodes) + ')'
 
     def delta(self):
-        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
         if self.isConstant:
             match self.type:
                 case ExprType.SCALAR: return Zero
@@ -118,7 +118,7 @@ class _NaryMixin(_BaseMixin):
         return type(self)(*[n.delta() for n in self.nodes])
 
     def t_diff(self):
-        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
         if self.isConstant:
             match self.type:
                 case ExprType.SCALAR: return Zero
@@ -155,7 +155,7 @@ class _BinaryMixin(_BaseMixin):
 
         op_name: 'delta' or 't_diff'
         """
-        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
         if self.isConstant:
             match self.type:
                 case ExprType.SCALAR: return Zero
@@ -202,7 +202,7 @@ class _UnaryMixin(_BaseMixin):
         return self.expr.isZero
 
     def delta(self):
-        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
         if self.isConstant:
             match self.type:
                 case ExprType.SCALAR: return Zero
@@ -211,7 +211,7 @@ class _UnaryMixin(_BaseMixin):
         return type(self)(self.expr.delta())
 
     def t_diff(self):
-        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
         if self.isConstant:
             match self.type:
                 case ExprType.SCALAR: return Zero

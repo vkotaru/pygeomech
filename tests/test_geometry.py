@@ -1,5 +1,5 @@
 import pytest
-from geomech.core.expressions import (
+from geomech.core.base.expressions import (
     Scalar, Vector, Matrix,
     getScalars, getVectors, getMatrices,
 )
@@ -8,7 +8,7 @@ from geomech.core.operations.multiplication import (
     Mul, SVMul, MVMul, VVMul,
 )
 from geomech.core.operations.geometry import Delta, Dot, Cross, Hat, Vee, Transpose
-from geomech.core.types import ExprType
+from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError
 
 

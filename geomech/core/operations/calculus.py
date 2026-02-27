@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from geomech.core.expressions import Expr
+from geomech.core.base.expressions import Expr
 from geomech.core.operations.mixins import _CalcUnaryMixin
 
 

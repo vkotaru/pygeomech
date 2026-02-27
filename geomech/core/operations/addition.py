@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from geomech.core.expressions import (
+from geomech.core.base.expressions import (
     ScalarExpr, VectorExpr, MatrixExpr,
 )
 from geomech.core.operations.mixins import _NaryMixin
-from geomech.core.types import ExprType
+from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 
 

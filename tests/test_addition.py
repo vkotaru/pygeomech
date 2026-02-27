@@ -1,10 +1,10 @@
 import pytest
-from geomech.core.expressions import (
+from geomech.core.base.expressions import (
     Scalar, Vector, Matrix, Zero, ZeroVector, ZeroMatrix,
     getScalars, getVectors, getMatrices,
 )
 from geomech.core.operations.addition import Add, VAdd, MAdd
-from geomech.core.types import ExprType
+from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 
 

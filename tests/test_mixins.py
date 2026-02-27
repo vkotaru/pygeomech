@@ -1,5 +1,5 @@
 import pytest
-from geomech.core.expressions import (
+from geomech.core.base.expressions import (
     Scalar, Vector, Matrix,
     getScalars, getVectors, getMatrices,
 )

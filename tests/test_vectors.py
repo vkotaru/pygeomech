@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from geomech.core.types import ExprType
-from geomech.core.expressions import (
+from geomech.core.base.types import ExprType
+from geomech.core.base.expressions import (
     Vector, S2, TS2, ZeroVector, getVectors, Scalar,
 )
 from geomech.core.operations.addition import VAdd
