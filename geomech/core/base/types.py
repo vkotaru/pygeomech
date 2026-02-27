@@ -16,6 +16,7 @@ class ExprFlags:
     is_zero: bool = False
     is_ones: bool = False
     is_unit_norm: bool = False
+    is_identity: bool = False
     is_symmetric: bool = False
     is_numeric: bool = False
     is_manifold: bool = False
@@ -36,6 +37,7 @@ class ExprFlags:
                     flags.is_ones = True
                     flags.is_constant = True
                 case 'Identity':
+                    flags.is_identity = True
                     flags.is_constant = True
                 case 'UnitNorm':
                     flags.is_unit_norm = True
