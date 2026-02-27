@@ -7,7 +7,7 @@ from geomech.core.expressions import (
 )
 from geomech.core.operations.mixins import _CalcUnaryMixin, _BinaryMixin, _UnaryMixin, _BaseMixin
 from geomech.core.types import ExprType
-from geomech.utils.errors import ExpressionMismatchError
+from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 
 
 # ---------------------------------------------------------------------------
@@ -37,6 +37,10 @@ class Dot(_BinaryMixin, ScalarExpr):
 
     def __init__(self, l, r):
         if l.type == ExprType.VECTOR and r.type == ExprType.VECTOR:
+            ls = getattr(l, 'size', None)
+            rs = getattr(r, 'size', None)
+            if ls is not None and rs is not None and ls != rs:
+                raise SizeMismatchError('Dot', ls, rs)
             self.nodes = [l, r]
         else:
             raise ExpressionMismatchError('Dot', l.type, r.type)
@@ -56,6 +60,10 @@ class Cross(_BinaryMixin, VectorExpr):
 
     def __init__(self, l, r):
         if l.type == ExprType.VECTOR and r.type == ExprType.VECTOR:
+            ls = getattr(l, 'size', None)
+            rs = getattr(r, 'size', None)
+            if ls is not None and rs is not None and ls != rs:
+                raise SizeMismatchError('Cross', ls, rs)
             self.nodes = [l, r]
         else:
             raise ExpressionMismatchError('Cross', l.type, r.type)
@@ -139,6 +147,12 @@ class Transpose(_BaseMixin, Expr):
 
     def __str__(self):
         return '(' + str(self.expr) + ")\'"
+
+    def delta(self):
+        return Transpose(self.expr.delta())
+
+    def t_diff(self):
+        return Transpose(self.expr.t_diff())
 
     def __mul__(self, other):
         from geomech.core.operations.multiplication import SVMul, VVMul, MVMul, _wrap_numeric

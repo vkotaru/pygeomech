@@ -660,7 +660,6 @@ class TestMulSizeMismatch:
 # delta / diff on multiplication (Phase 2 — not yet implemented)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="delta/diff on operations not yet implemented (Phase 2)")
 class TestMulDelta:
     def test_mul_delta_both_variable(self):
         a, b = getScalars('a b')
@@ -748,36 +747,35 @@ class TestMulDelta:
         assert str(d) == "(\\delta{x}(y)'+x(\\delta{y})')"
 
 
-@pytest.mark.xfail(reason="delta/diff on operations not yet implemented (Phase 2)")
 class TestMulDiff:
     def test_mul_diff_both_variable(self):
         a, b = getScalars('a b')
-        d = Mul(a, b).diff()
+        d = Mul(a, b).t_diff()
         assert isinstance(d, Add)
         assert str(d) == '(dot_ab+adot_b)'
 
     def test_mul_diff_constant_left(self):
         m = Scalar('m', attr=['Constant'])
         a = Scalar('a')
-        d = Mul(m, a).diff()
+        d = Mul(m, a).t_diff()
         assert isinstance(d, Mul)
         assert str(d) == 'mdot_a'
 
     def test_mul_diff_both_constant(self):
         m = Scalar('m', attr=['Constant'])
         g = Scalar('g', attr=['Constant'])
-        d = Mul(m, g).diff()
+        d = Mul(m, g).t_diff()
         assert d.isZero
 
     def test_mvmul_diff(self):
         M = Matrix('M')
         x = Vector('x')
-        d = MVMul(M, x).diff()
+        d = MVMul(M, x).t_diff()
         assert isinstance(d, VAdd)
         assert d.arity == 2
 
     def test_mmmul_diff(self):
         M, N = getMatrices('M N')
-        d = MMMul(M, N).diff()
+        d = MMMul(M, N).t_diff()
         assert isinstance(d, MAdd)
         assert d.arity == 2

@@ -1,21 +1,19 @@
 import pytest
 import numpy as np
-from geomech.base.expr import Expression
-from geomech.base.vectors import (
-    Vector, VectorExpr, S2, TS2, ZeroVector, getVectors,
+from geomech.core.types import ExprType
+from geomech.core.expressions import (
+    Vector, S2, TS2, ZeroVector, getVectors, Scalar,
 )
-from geomech.operations.addition import VAdd
-from geomech.operations.multiplication import SVMul, VVMul, MVMul
-from geomech.base.scalars import Scalar
-from geomech.operations.geometry import Delta, Dot, Cross, Hat
-from geomech.operations.transpose import Transpose
+from geomech.core.operations.addition import VAdd
+from geomech.core.operations.multiplication import SVMul, VVMul
+from geomech.core.operations.geometry import Delta, Dot, Cross, Transpose
 
 
 class TestVectorCreation:
     def test_basic_vector(self):
         x = Vector('x')
         assert str(x) == 'x'
-        assert x.type == Expression.VECTOR
+        assert x.type == ExprType.VECTOR
         assert x.size == (3,)
         assert not x.isConstant
 
@@ -26,7 +24,7 @@ class TestVectorCreation:
     def test_vector_with_value(self):
         v = Vector('v', value=np.array([0., 0., 1.]))
         assert v.size == (3,)
-        assert v.isNumeric
+        assert v.value is not None
 
     def test_get_vectors_list(self):
         x, y, z = getVectors(['x', 'y', 'z'])
@@ -45,14 +43,13 @@ class TestVectorArithmetic:
         x, y = getVectors(['x', 'y'])
         result = x + y
         assert isinstance(result, VAdd)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_triple_addition(self):
         x, y, z = getVectors(['x', 'y', 'z'])
         result = x + y + z
         assert isinstance(result, VAdd)
 
-    @pytest.mark.xfail(reason="NaryNode does not validate sizes yet")
     def test_addition_size_mismatch_fails(self):
         x = Vector('x', size=(3,))
         y = Vector('y', size=(4,))
@@ -64,14 +61,14 @@ class TestVectorArithmetic:
         a = Scalar('a')
         result = x * a
         assert isinstance(result, SVMul)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_scalar_left_mul(self):
         x = Vector('x')
         a = Scalar('a')
         result = a * x
         assert isinstance(result, SVMul)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_scalar_mul_commutativity(self):
         x = Vector('x')
@@ -89,13 +86,13 @@ class TestVectorArithmetic:
         x, y = getVectors(['x', 'y'])
         result = x.dot(y)
         assert isinstance(result, Dot)
-        assert result.type == Expression.SCALAR
+        assert result.type == ExprType.SCALAR
 
     def test_cross_product(self):
         x, y = getVectors(['x', 'y'])
         result = x.cross(y)
         assert isinstance(result, Cross)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_transpose(self):
         x = Vector('x')
@@ -106,40 +103,37 @@ class TestVectorArithmetic:
         x, y = getVectors(['x', 'y'])
         result = x * Transpose(y)
         assert isinstance(result, VVMul)
-        assert result.type == Expression.MATRIX
+        assert result.type == ExprType.MATRIX
 
     def test_vecT_vec_mul(self):
         x, y = getVectors(['x', 'y'])
         result = Transpose(x) * y
         assert isinstance(result, VVMul)
-        assert result.type == Expression.SCALAR
+        assert result.type == ExprType.SCALAR
 
 
 class TestVectorSizeMismatch:
     """Tests that operations fail when vector sizes don't match."""
 
-    @pytest.mark.xfail(reason="Dot does not validate sizes yet")
     def test_dot_size_mismatch_fails(self):
         x = Vector('x', size=(3,))
         y = Vector('y', size=(4,))
         with pytest.raises(Exception):
             Dot(x, y)
 
-    @pytest.mark.xfail(reason="Cross does not validate sizes yet")
     def test_cross_size_mismatch_fails(self):
         x = Vector('x', size=(3,))
         y = Vector('y', size=(4,))
         with pytest.raises(Exception):
             Cross(x, y)
 
-    @pytest.mark.xfail(reason="VVMul does not validate sizes yet")
-    def test_vec_vecT_mul_size_mismatch_fails(self):
+    def test_vec_vecT_mul_different_sizes_allowed(self):
         x = Vector('x', size=(3,))
         y = Vector('y', size=(4,))
-        with pytest.raises(Exception):
-            x * Transpose(y)
+        result = x * Transpose(y)
+        assert isinstance(result, VVMul)
+        assert result.type == ExprType.MATRIX
 
-    @pytest.mark.xfail(reason="VVMul does not validate sizes yet")
     def test_vecT_vec_mul_size_mismatch_fails(self):
         x = Vector('x', size=(3,))
         y = Vector('y', size=(4,))
@@ -161,24 +155,24 @@ class TestVectorOperations:
 
     def test_diff_variable(self):
         x = Vector('x')
-        dx = x.diff()
+        dx = x.t_diff()
         assert str(dx) == 'dot_x'
 
     def test_diff_constant(self):
         e3 = Vector('e3', attr=['Constant'])
-        de3 = e3.diff()
+        de3 = e3.t_diff()
         assert de3.isConstant
         assert de3.isZero
 
     def test_integrate_undoes_diff(self):
         x = Vector('x')
-        dx = x.diff()
-        result = dx.integrate()
+        dx = x.t_diff()
+        result = dx.t_integrate()
         assert str(result) == 'x'
 
     def test_integrate_adds_prefix(self):
         x = Vector('x')
-        result = x.integrate()
+        result = x.t_integrate()
         assert str(result) == 'int_x'
 
 
@@ -194,7 +188,7 @@ class TestS2Manifold:
     def test_s2_creation(self):
         q = S2('q')
         assert q.isManifold
-        assert q.type == Expression.VECTOR
+        assert q.type == ExprType.VECTOR
 
     def test_s2_variation_vector(self):
         q = S2('q')
@@ -215,5 +209,5 @@ class TestS2Manifold:
 
     def test_s2_diff(self):
         q = S2('q')
-        dq = q.diff()
+        dq = q.t_diff()
         assert isinstance(dq, Cross)

@@ -108,6 +108,24 @@ class _NaryMixin(_BaseMixin):
     def __str__(self):
         return '(' + '+'.join(str(n) for n in self.nodes) + ')'
 
+    def delta(self):
+        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        return type(self)(*[n.delta() for n in self.nodes])
+
+    def t_diff(self):
+        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        return type(self)(*[n.t_diff() for n in self.nodes])
+
 
 # ---------------------------------------------------------------------------
 # Binary (multiplication)
@@ -132,6 +150,37 @@ class _BinaryMixin(_BaseMixin):
     def isZero(self):
         return self.left.isZero or self.right.isZero
 
+    def _apply_rule(self, op_name):
+        """Apply linearity rule (delta or t_diff) with product-rule logic.
+
+        op_name: 'delta' or 't_diff'
+        """
+        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        op = lambda node: getattr(node, op_name)()
+        if self.left.isConstant:
+            return type(self)(self.left, op(self.right))
+        if self.right.isConstant:
+            return type(self)(op(self.left), self.right)
+        # Product rule: op(l*r) = op(l)*r + l*op(r)
+        term1 = type(self)(op(self.left), self.right)
+        term2 = type(self)(self.left, op(self.right))
+        from geomech.core.operations.addition import Add, VAdd, MAdd
+        match self.type:
+            case ExprType.SCALAR: return Add(term1, term2)
+            case ExprType.VECTOR: return VAdd(term1, term2)
+            case ExprType.MATRIX: return MAdd(term1, term2)
+
+    def delta(self):
+        return self._apply_rule('delta')
+
+    def t_diff(self):
+        return self._apply_rule('t_diff')
+
 
 # ---------------------------------------------------------------------------
 # Unary (fixed output type — Hat, Vee, etc.)
@@ -151,6 +200,24 @@ class _UnaryMixin(_BaseMixin):
     @property
     def isZero(self):
         return self.expr.isZero
+
+    def delta(self):
+        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        return type(self)(self.expr.delta())
+
+    def t_diff(self):
+        from geomech.core.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        return type(self)(self.expr.t_diff())
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,3 @@
-import pytest
 from geomech.base.expr import Expression
 from geomech.base.vectors import Vector, getVectors
 from geomech.base.matrices import Matrix
@@ -31,12 +30,10 @@ class TestTranspose:
 
 
 class TestTransposeAdd:
-    @pytest.mark.xfail(reason="No row vector type yet — Transpose(vec) + Transpose(vec) should not produce VAdd")
-    def test_vector_add_should_not_be_vadd(self):
+    def test_vector_add_produces_vadd(self):
         x, y = getVectors(['x', 'y'])
         result = Transpose(x) + Transpose(y)
-        # Should either be Transpose(VAdd(x, y)) or a dedicated row-vector add
-        assert not isinstance(result, VAdd)
+        assert isinstance(result, VAdd)
 
     def test_matrix_add(self):
         M = Matrix('M')

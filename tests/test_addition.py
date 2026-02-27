@@ -401,7 +401,6 @@ class TestAddSizeMismatch:
 # delta / diff on Add (Phase 2 — not yet implemented)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="delta/diff on operations not yet implemented (Phase 2)")
 class TestAdditionDelta:
     def test_scalar_add_delta(self):
         a, b = getScalars('a b')
@@ -442,39 +441,38 @@ class TestAdditionDelta:
         assert d == ZeroMatrix
 
 
-@pytest.mark.xfail(reason="delta/diff on operations not yet implemented (Phase 2)")
 class TestAdditionDiff:
     def test_scalar_add_diff(self):
         a, b = getScalars('a b')
-        d = (a + b).diff()
+        d = (a + b).t_diff()
         assert isinstance(d, Add)
         assert str(d) == '(dot_a+dot_b)'
 
     def test_vector_add_diff(self):
         x, y = getVectors(['x', 'y'])
-        d = (x + y).diff()
+        d = (x + y).t_diff()
         assert isinstance(d, VAdd)
         assert str(d) == '(dot_x+dot_y)'
 
     def test_matrix_add_diff(self):
         M, N = getMatrices('M N')
-        d = (M + N).diff()
+        d = (M + N).t_diff()
         assert isinstance(d, MAdd)
         assert str(d) == '(dot_M+dot_N)'
 
     def test_all_constant_scalar_diff_is_zero(self):
         m, g = getScalars('m g', attr=['Constant'])
-        d = (m + g).diff()
+        d = (m + g).t_diff()
         assert d == Zero
 
     def test_all_constant_vector_diff_is_zero(self):
         e1 = Vector('e1', attr=['Constant'])
         e2 = Vector('e2', attr=['Constant'])
-        d = (e1 + e2).diff()
+        d = (e1 + e2).t_diff()
         assert d == ZeroVector
 
     def test_all_constant_matrix_diff_is_zero(self):
         A = Matrix('A', attr=['Constant'])
         B = Matrix('B', attr=['Constant'])
-        d = (A + B).diff()
+        d = (A + B).t_diff()
         assert d == ZeroMatrix

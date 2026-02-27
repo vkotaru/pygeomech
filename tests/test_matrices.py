@@ -1,20 +1,19 @@
 import pytest
-from geomech.base.expr import Expression
-from geomech.base.matrices import (
-    Matrix, MatrixExpr, SO3, SkewSymmMatrix, ZeroMatrix, IdentityMatrix, O, I, getMatrices,
+from geomech.core.types import ExprType
+from geomech.core.expressions import (
+    Matrix, SO3, SkewSymmMatrix, ZeroMatrix, IdentityMatrix, O, I, getMatrices,
+    Scalar, Vector, TSO3,
 )
-from geomech.base.scalars import Scalar
-from geomech.base.vectors import Vector, TSO3
-from geomech.operations.addition import MAdd
-from geomech.operations.multiplication import SMMul, MVMul, MMMul
-from geomech.operations.geometry import Delta
+from geomech.core.operations.addition import MAdd
+from geomech.core.operations.multiplication import SMMul, MVMul, MMMul
+from geomech.core.operations.geometry import Delta
 
 
 class TestMatrixCreation:
     def test_basic_matrix(self):
         M = Matrix('M')
         assert str(M) == 'M'
-        assert M.type == Expression.MATRIX
+        assert M.type == ExprType.MATRIX
         assert M.size == (3, 3)
         assert not M.isConstant
 
@@ -56,9 +55,8 @@ class TestMatrixArithmetic:
         M, N = getMatrices('M N')
         result = M + N
         assert isinstance(result, MAdd)
-        assert result.type == Expression.MATRIX
+        assert result.type == ExprType.MATRIX
 
-    @pytest.mark.xfail(reason="NaryNode does not validate sizes yet")
     def test_addition_size_mismatch_fails(self):
         A = Matrix('A', size=(3, 3))
         B = Matrix('B', size=(4, 4))
@@ -94,13 +92,13 @@ class TestMatrixArithmetic:
         x = Vector('x')
         result = M * x
         assert isinstance(result, MVMul)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_matrix_mul(self):
         M, N = getMatrices('M N')
         result = M * N
         assert isinstance(result, MMMul)
-        assert result.type == Expression.MATRIX
+        assert result.type == ExprType.MATRIX
 
 
 class TestMatrixOperations:
@@ -117,12 +115,12 @@ class TestMatrixOperations:
 
     def test_diff_variable(self):
         M = Matrix('M')
-        dM = M.diff()
+        dM = M.t_diff()
         assert str(dM) == 'dot_M'
 
     def test_diff_constant(self):
         J = Matrix('J', attr=['Constant'])
-        dJ = J.diff()
+        dJ = J.t_diff()
         assert dJ.isConstant
         assert dJ.isZero
 
@@ -130,13 +128,13 @@ class TestMatrixOperations:
 class TestMatrixIntegrate:
     def test_integrate_undoes_diff(self):
         M = Matrix('M')
-        dM = M.diff()
-        result = dM.integrate()
+        dM = M.t_diff()
+        result = dM.t_integrate()
         assert str(result) == 'M'
 
     def test_integrate_adds_prefix(self):
         M = Matrix('M')
-        result = M.integrate()
+        result = M.t_integrate()
         assert str(result) == 'int_M'
 
 
@@ -151,7 +149,7 @@ class TestSO3Manifold:
     def test_so3_creation(self):
         R = SO3('R')
         assert R.isManifold
-        assert R.type == Expression.MATRIX
+        assert R.type == ExprType.MATRIX
 
     def test_so3_variation_vector(self):
         R = SO3('R')
@@ -172,5 +170,5 @@ class TestSO3Manifold:
 
     def test_so3_diff(self):
         R = SO3('R')
-        dR = R.diff()
+        dR = R.t_diff()
         assert isinstance(dR, MMMul)

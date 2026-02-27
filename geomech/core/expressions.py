@@ -326,7 +326,7 @@ class TS2(Vector):
 class S2(Vector):
     """S2 manifold (unit sphere)."""
 
-    def __init__(self, s=None, *, size=(3, 1), value=None, attr=None):
+    def __init__(self, s=None, *, size=(3,), value=None, attr=None):
         if attr is None:
             attr = []
         attr.append('Manifold')
