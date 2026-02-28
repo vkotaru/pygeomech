@@ -21,6 +21,15 @@ class Variation(_CalcUnaryMixin, Expr):
     def __str__(self):
         return '\\delta{' + str(self.expr) + '}'
 
+    def t_diff(self):
+        """d/dt(δx) — put TimeDerivative on the outside.
+
+        δ and d/dt commute, but the expression tree produces
+        TimeDerivative(Variation(x)) when taking the variation of d/dt(x).
+        This override ensures the IBP target matches that structure.
+        """
+        return TimeDerivative(self)
+
 
 # ---------------------------------------------------------------------------
 # TimeDerivative  (d/dt operator as a tree node)

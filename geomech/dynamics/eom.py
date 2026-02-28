@@ -1,0 +1,72 @@
+"""Equations of motion via the principle of least action.
+
+compute_eom(lagrangian, inf_work, variables)
+    variation → simplify → IBP → expand → extract coefficients
+
+separate_variations(expr, variation_vectors)
+    extract coefficient of each variation vector from the action integral
+"""
+
+from __future__ import annotations
+
+from geomech.core.math.extract import extract_coeff
+from geomech.core.math.ibp import integrate_by_parts
+from geomech.core.transformations.expand import expand
+from geomech.core.transformations.simplify import full_simplify
+
+from geomech.dynamics.variables import SystemVariables
+
+
+def compute_eom(lagrangian, inf_work, variables: SystemVariables):
+    """Compute equations of motion using the principle of least action.
+
+    1. Take the variation of the Lagrangian: δL
+    2. Form the infinitesimal action integral: δS = δL + δW
+    3. Simplify
+    4. Gather variation vectors and their time derivatives
+    5. Integration by parts to move time derivatives off variation vectors
+    6. Expand
+    7. Extract coefficients of each independent variation vector
+    """
+    # variation of the Lagrangian
+    dL = lagrangian.delta()
+
+    # infinitesimal action integral
+    dS = dL + inf_work
+    dS = full_simplify(dS)
+
+    # gather variation vectors and their time derivatives
+    variation_vectors = []
+    variation_vector_dots = []
+
+    for vec in variables.vectors:
+        x = vec.get_variation_vector()
+        variation_vectors.append(x)
+        variation_vector_dots.append(x.t_diff())
+
+    for mat in variables.matrices:
+        x = mat.get_variation_vector()
+        variation_vectors.append(x)
+        variation_vector_dots.append(x.t_diff())
+
+    # integration by parts
+    dS = integrate_by_parts(dS, variation_vector_dots)
+
+    # expand
+    dS = expand(dS)
+
+    # extract equations of motion
+    return separate_variations(dS, variation_vectors)
+
+
+def separate_variations(inf_action_integral, variation_vectors):
+    """Extract the equation of motion for each variation vector.
+
+    Returns a dict mapping str(variation_vector) → (variation_vector, equation).
+    """
+    eom = {}
+    for vec in variation_vectors:
+        dyn_eqn = extract_coeff(inf_action_integral, vec)
+        dyn_eqn = full_simplify(dyn_eqn)
+        eom[str(vec)] = (vec, dyn_eqn)
+    return eom
