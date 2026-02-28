@@ -2,9 +2,14 @@
 
 print_eom(eqns)     — display the EOM dict as LaTeX equations
 print_tree(expr)    — display the expression tree structure for debugging
+render_eom(eqns)    — compile EOM to PDF via pdflatex
 """
 
 from __future__ import annotations
+
+import os
+import subprocess
+import tempfile
 
 
 # ---------------------------------------------------------------------------
@@ -115,3 +120,68 @@ def _child_label(expr, index):
 
     # N-ary: label with index
     return str(index)
+
+
+# ---------------------------------------------------------------------------
+# PDF renderer
+# ---------------------------------------------------------------------------
+
+def eom_to_latex(eqns):
+    """Return a complete LaTeX document string for the EOM dict."""
+    lines = [
+        r'\documentclass[12pt]{article}',
+        r'\usepackage{amsmath,amssymb}',
+        r'\usepackage[margin=1in]{geometry}',
+        r'\begin{document}',
+        r'\section*{Equations of Motion}',
+    ]
+    for key, (var_vec, eqn) in eqns.items():
+        lhs = str(var_vec)
+        rhs = str(eqn)
+        lines.append(r'\begin{equation}')
+        lines.append(
+            r'\int ' + lhs + r' \cdot \Big(' + rhs + r'\Big)\, dt = 0'
+        )
+        lines.append(r'\end{equation}')
+    lines.append(r'\end{document}')
+    return '\n'.join(lines)
+
+
+def render_eom(eqns, output='eom.pdf', open_pdf=True):
+    """Compile EOM to PDF via pdflatex.
+
+    Parameters
+    ----------
+    eqns : dict
+        The dict returned by ``compute_eom``.
+    output : str
+        Output PDF path (default: ``eom.pdf`` in current directory).
+    open_pdf : bool
+        If True, open the PDF after compilation (macOS ``open``).
+    """
+    tex_src = eom_to_latex(eqns)
+    output = os.path.abspath(output)
+    pdf_name = os.path.splitext(os.path.basename(output))[0]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tex_path = os.path.join(tmpdir, pdf_name + '.tex')
+        with open(tex_path, 'w') as f:
+            f.write(tex_src)
+
+        result = subprocess.run(
+            ['pdflatex', '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
+            capture_output=True, text=True,
+        )
+        pdf_tmp = os.path.join(tmpdir, pdf_name + '.pdf')
+        if result.returncode != 0 or not os.path.exists(pdf_tmp):
+            print('pdflatex failed:')
+            print(result.stdout[-2000:] if len(result.stdout) > 2000 else result.stdout)
+            return None
+
+        import shutil
+        shutil.copy2(pdf_tmp, output)
+
+    print(f'PDF written to {output}')
+    if open_pdf:
+        subprocess.run(['open', output])
+    return output
