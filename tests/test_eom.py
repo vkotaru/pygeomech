@@ -4,6 +4,7 @@ from geomech.core.base.expressions import Scalar, Vector, Matrix, S2, SO3
 from geomech.core.operations.geometry import Dot
 from geomech.core.operations.calculus import Variation
 from geomech.dynamics import SystemVariables, compute_eom
+from geomech.utils.printing import print_eom, print_tree
 
 
 def _getScalars(names, attr=None):
@@ -26,7 +27,7 @@ class TestPointMassEOM:
         v = x.t_diff()
 
         PE = m * Dot(x, g * e3)
-        KE = m * Dot(v, v) * Scalar('half', value=0.5, attr=['Constant'])
+        KE = m * Dot(v, v) * Scalar('0.5', value=0.5, attr=['Constant'])
         L = KE - PE
 
         delta_x = x.get_variation_vector()  # Variation(x)
@@ -34,9 +35,16 @@ class TestPointMassEOM:
 
         variables = SystemVariables(vectors=[x])
         eqs = compute_eom(L, deltaW, variables)
-        print(eqs)
         assert isinstance(eqs, dict)
         assert len(eqs) == 1
+
+        print('\n--- Point Mass: Lagrangian tree ---')
+        print_tree(L)
+        print('\n--- Point Mass: EOM ---')
+        print_eom(eqs)
+        print('\n--- Point Mass: EOM tree ---')
+        for _, (_, eqn) in eqs.items():
+            print_tree(eqn)
 
     def test_variation_vector_is_key(self):
         m, = _getScalars('m', attr=['Constant'])
@@ -44,7 +52,7 @@ class TestPointMassEOM:
         f = Vector('f')
 
         v = x.t_diff()
-        L = m * Dot(v, v) * Scalar('half', value=0.5, attr=['Constant'])
+        L = m * Dot(v, v) * Scalar('0.5', value=0.5, attr=['Constant'])
         deltaW = Dot(x.get_variation_vector(), f)
 
         variables = SystemVariables(vectors=[x])
@@ -59,7 +67,7 @@ class TestPointMassEOM:
         f = Vector('f')
 
         v = x.t_diff()
-        L = m * Dot(v, v) * Scalar('half', value=0.5, attr=['Constant'])
+        L = m * Dot(v, v) * Scalar('0.5', value=0.5, attr=['Constant'])
         deltaW = Dot(x.get_variation_vector(), f)
 
         variables = SystemVariables(vectors=[x])
@@ -87,7 +95,7 @@ class TestSphericalPendulumEOM:
         v = x.t_diff()
 
         PE = m * Dot(x, g * e3)
-        KE = m * Dot(v, v) * Scalar('half', value=0.5, attr=['Constant'])
+        KE = m * Dot(v, v) * Scalar('0.5', value=0.5, attr=['Constant'])
         L = KE - PE
         dW = Dot(q.get_variation_vector(), f)
 
@@ -96,6 +104,14 @@ class TestSphericalPendulumEOM:
 
         assert isinstance(eqs, dict)
         assert len(eqs) == 1
+
+        print('\n--- Spherical Pendulum: Lagrangian tree ---')
+        print_tree(L)
+        print('\n--- Spherical Pendulum: EOM ---')
+        print_eom(eqs)
+        print('\n--- Spherical Pendulum: EOM tree ---')
+        for _, (_, eqn) in eqs.items():
+            print_tree(eqn)
 
 
 # ===========================================================================
@@ -116,8 +132,8 @@ class TestRigidPendulumEOM:
         x = R * rho
         v = x.t_diff()
 
-        KE = Dot(Om, J * Om) * Scalar('half', value=0.5, attr=['Constant']) \
-           + Dot(v, v) * m * Scalar('half', value=0.5, attr=['Constant'])
+        KE = Dot(Om, J * Om) * Scalar('0.5', value=0.5, attr=['Constant']) \
+           + Dot(v, v) * m * Scalar('0.5', value=0.5, attr=['Constant'])
         PE = m * g * Dot(x, e3)
         L = KE - PE
         deltaW = Dot(eta, M_torque)
@@ -127,6 +143,14 @@ class TestRigidPendulumEOM:
 
         assert isinstance(eqs, dict)
         assert len(eqs) == 1
+
+        print('\n--- Rigid Pendulum: Lagrangian tree ---')
+        print_tree(L)
+        print('\n--- Rigid Pendulum: EOM ---')
+        print_eom(eqs)
+        print('\n--- Rigid Pendulum: EOM tree ---')
+        for _, (_, eqn) in eqs.items():
+            print_tree(eqn)
 
 
 # ===========================================================================
