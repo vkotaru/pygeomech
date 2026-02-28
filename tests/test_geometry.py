@@ -68,19 +68,19 @@ class TestVariationStr:
 class TestVariationProperties:
     def test_is_constant_true(self):
         c = Scalar('c', attr=['Constant'])
-        assert Variation(c).isConstant is True
+        assert Variation(c).is_constant is True
 
     def test_is_constant_false(self):
         a = Scalar('a')
-        assert Variation(a).isConstant is False
+        assert Variation(a).is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Variation(z).isZero is True
+        assert Variation(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert Variation(x).isZero is False
+        assert Variation(x).is_zero is False
 
 
 class TestVariationHas:
@@ -192,26 +192,26 @@ class TestDotProperties:
     def test_is_constant_both(self):
         e1 = Vector('e1', attr=['Constant'])
         e2 = Vector('e2', attr=['Constant'])
-        assert Dot(e1, e2).isConstant is True
+        assert Dot(e1, e2).is_constant is True
 
     def test_is_constant_one(self):
         e1 = Vector('e1', attr=['Constant'])
         x = Vector('x')
-        assert Dot(e1, x).isConstant is False
+        assert Dot(e1, x).is_constant is False
 
     def test_is_zero_left(self):
         z = Vector('0', attr=['Constant', 'Zero'])
         x = Vector('x')
-        assert Dot(z, x).isZero is True
+        assert Dot(z, x).is_zero is True
 
     def test_is_zero_right(self):
         x = Vector('x')
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Dot(x, z).isZero is True
+        assert Dot(x, z).is_zero is True
 
     def test_is_zero_neither(self):
         x, y = getVectors(['x', 'y'])
-        assert Dot(x, y).isZero is False
+        assert Dot(x, y).is_zero is False
 
 
 class TestDotHas:
@@ -293,26 +293,26 @@ class TestCrossProperties:
     def test_is_constant_both(self):
         e1 = Vector('e1', attr=['Constant'])
         e2 = Vector('e2', attr=['Constant'])
-        assert Cross(e1, e2).isConstant is True
+        assert Cross(e1, e2).is_constant is True
 
     def test_is_constant_one(self):
         e1 = Vector('e1', attr=['Constant'])
         x = Vector('x')
-        assert Cross(e1, x).isConstant is False
+        assert Cross(e1, x).is_constant is False
 
     def test_is_zero_left(self):
         z = Vector('0', attr=['Constant', 'Zero'])
         x = Vector('x')
-        assert Cross(z, x).isZero is True
+        assert Cross(z, x).is_zero is True
 
     def test_is_zero_right(self):
         x = Vector('x')
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Cross(x, z).isZero is True
+        assert Cross(x, z).is_zero is True
 
     def test_is_zero_neither(self):
         x, y = getVectors(['x', 'y'])
-        assert Cross(x, y).isZero is False
+        assert Cross(x, y).is_zero is False
 
 
 class TestCrossHas:
@@ -377,19 +377,19 @@ class TestHatStr:
 class TestHatProperties:
     def test_is_constant_true(self):
         e1 = Vector('e1', attr=['Constant'])
-        assert Hat(e1).isConstant is True
+        assert Hat(e1).is_constant is True
 
     def test_is_constant_false(self):
         x = Vector('x')
-        assert Hat(x).isConstant is False
+        assert Hat(x).is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Hat(z).isZero is True
+        assert Hat(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert Hat(x).isZero is False
+        assert Hat(x).is_zero is False
 
 
 class TestHatHas:
@@ -448,19 +448,19 @@ class TestVeeStr:
 class TestVeeProperties:
     def test_is_constant_true(self):
         C = Matrix('C', attr=['Constant'])
-        assert Vee(C).isConstant is True
+        assert Vee(C).is_constant is True
 
     def test_is_constant_false(self):
         M = Matrix('M')
-        assert Vee(M).isConstant is False
+        assert Vee(M).is_constant is False
 
     def test_is_zero_true(self):
         Z = Matrix('O', attr=['Constant', 'Zero'])
-        assert Vee(Z).isZero is True
+        assert Vee(Z).is_zero is True
 
     def test_is_zero_false(self):
         M = Matrix('M')
-        assert Vee(M).isZero is False
+        assert Vee(M).is_zero is False
 
 
 class TestVeeHas:
@@ -537,25 +537,25 @@ class TestTransposeStr:
 class TestTransposeProperties:
     def test_is_constant_true(self):
         e1 = Vector('e1', attr=['Constant'])
-        assert Transpose(e1).isConstant is True
+        assert Transpose(e1).is_constant is True
 
     def test_is_constant_false(self):
         x = Vector('x')
-        assert Transpose(x).isConstant is False
+        assert Transpose(x).is_constant is False
 
     def test_is_constant_none(self):
-        assert Transpose().isConstant is False
+        assert Transpose().is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Transpose(z).isZero is True
+        assert Transpose(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert Transpose(x).isZero is False
+        assert Transpose(x).is_zero is False
 
     def test_is_zero_none(self):
-        assert Transpose().isZero is False
+        assert Transpose().is_zero is False
 
     def test_size_vector(self):
         x = Vector('x', size=(3,))

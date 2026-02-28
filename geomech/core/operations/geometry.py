@@ -119,12 +119,12 @@ class Transpose(_BaseMixin, Expr):
         return self.expr.type if self.expr else None
 
     @property
-    def isConstant(self):
-        return self.expr.isConstant if self.expr else False
+    def is_constant(self):
+        return self.expr.is_constant if self.expr else False
 
     @property
-    def isZero(self):
-        return self.expr.isZero if self.expr else False
+    def is_zero(self):
+        return self.expr.is_zero if self.expr else False
 
     @property
     def size(self):

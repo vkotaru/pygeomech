@@ -187,7 +187,7 @@ def _eliminate(expr):
 # ---------------------------------------------------------------------------
 
 def _is_zero(expr) -> bool:
-    return getattr(expr, 'isZero', False)
+    return getattr(expr, 'is_zero', False)
 
 
 def _is_one(expr) -> bool:
@@ -195,7 +195,7 @@ def _is_one(expr) -> bool:
 
 
 def _is_identity(expr) -> bool:
-    flags = getattr(expr, '_flags', None)
+    flags = getattr(expr, 'flags', None)
     return flags is not None and flags.is_identity
 
 

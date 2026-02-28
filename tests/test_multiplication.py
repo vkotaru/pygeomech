@@ -318,61 +318,61 @@ class TestConstantZeroPropagation:
     def test_mul_constant(self):
         m = Scalar('m', attr=['Constant'])
         g = Scalar('g', attr=['Constant'])
-        assert Mul(m, g).isConstant
+        assert Mul(m, g).is_constant
 
     def test_mul_not_constant(self):
         a, b = getScalars('a b')
-        assert not Mul(a, b).isConstant
+        assert not Mul(a, b).is_constant
 
     def test_mul_zero_left(self):
         z = Scalar('0', attr=['Constant', 'Zero'])
         a = Scalar('a')
-        assert Mul(z, a).isZero
+        assert Mul(z, a).is_zero
 
     def test_mul_zero_right(self):
         a = Scalar('a')
         z = Scalar('0', attr=['Constant', 'Zero'])
-        assert Mul(a, z).isZero
+        assert Mul(a, z).is_zero
 
     def test_svmul_constant(self):
         m = Scalar('m', attr=['Constant'])
         e = Vector('e', attr=['Constant'])
-        assert SVMul(e, m).isConstant
+        assert SVMul(e, m).is_constant
 
     def test_svmul_zero_scalar(self):
         z = Scalar('0', attr=['Constant', 'Zero'])
         x = Vector('x')
-        assert SVMul(x, z).isZero
+        assert SVMul(x, z).is_zero
 
     def test_mvmul_constant(self):
         J = Matrix('J', attr=['Constant'])
         e = Vector('e', attr=['Constant'])
-        assert MVMul(J, e).isConstant
+        assert MVMul(J, e).is_constant
 
     def test_smmul_constant(self):
         m = Scalar('m', attr=['Constant'])
         J = Matrix('J', attr=['Constant'])
-        assert SMMul(J, m).isConstant
+        assert SMMul(J, m).is_constant
 
     def test_smmul_zero(self):
         z = Scalar('0', attr=['Constant', 'Zero'])
         M = Matrix('M')
-        assert SMMul(M, z).isZero
+        assert SMMul(M, z).is_zero
 
     def test_mvmul_zero(self):
         M = Matrix('M', attr=['Constant', 'Zero'])
         x = Vector('x')
-        assert MVMul(M, x).isZero
+        assert MVMul(M, x).is_zero
 
     def test_mmmul_constant(self):
         J = Matrix('J', attr=['Constant'])
         K = Matrix('K', attr=['Constant'])
-        assert MMMul(J, K).isConstant
+        assert MMMul(J, K).is_constant
 
     def test_mmmul_zero(self):
         Z = Matrix('Z', attr=['Constant', 'Zero'])
         M = Matrix('M')
-        assert MMMul(Z, M).isZero
+        assert MMMul(Z, M).is_zero
 
 
 # ---------------------------------------------------------------------------
@@ -686,7 +686,7 @@ class TestMulDelta:
         m = Scalar('m', attr=['Constant'])
         g = Scalar('g', attr=['Constant'])
         d = Mul(m, g).delta()
-        assert d.isZero
+        assert d.is_zero
 
     def test_svmul_delta(self):
         a = Scalar('a')
@@ -765,7 +765,7 @@ class TestMulDiff:
         m = Scalar('m', attr=['Constant'])
         g = Scalar('g', attr=['Constant'])
         d = Mul(m, g).t_diff()
-        assert d.isZero
+        assert d.is_zero
 
     def test_mvmul_diff(self):
         M = Matrix('M')

@@ -34,7 +34,7 @@ class TestGetVariationVector:
         """Constant vector variation is zero."""
         c = Vector('c', attr=['Constant'])
         result = c.get_variation_vector()
-        assert result.isZero
+        assert result.is_zero
 
     def test_scalar_returns_delta(self):
         """Scalar('a').get_variation_vector() → Variation(a) via Expr default."""

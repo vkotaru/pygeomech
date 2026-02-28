@@ -530,4 +530,4 @@ class TestFullSimplify:
 # ===================================================================
 
 def _is_zero(expr) -> bool:
-    return getattr(expr, 'isZero', False)
+    return getattr(expr, 'is_zero', False)

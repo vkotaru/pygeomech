@@ -1,11 +1,7 @@
 import pytest
-from geomech.base.scalars import Scalar, getScalars
-from geomech.base.vectors import Vector, getVectors
-from geomech.base.matrices import Matrix, getMatrices
-from geomech.operations.addition import Add, VAdd, MAdd
-from geomech.operations.multiplication import Mul, SVMul, MVMul, MMMul
-from geomech.operations.geometry import Dot, Cross, Hat
-from geomech.operations.expansion import expand
+from geomech.core.base import Scalar, getScalars, Vector, getVectors, Matrix, getMatrices
+from geomech.core.operations import Add, VAdd, MAdd, Mul, SVMul, MVMul, MMMul, Dot, Cross, Hat
+from geomech.core.transformations import expand
 
 
 class TestExpandScalar:
@@ -31,7 +27,7 @@ class TestExpandScalar:
         expr = (a + b) * (c + d)
         expanded = expand(expr)
         assert isinstance(expanded, Add)
-        assert expanded.N == 4
+        assert len(expanded) == 4
         assert str(expanded) == '(ac+ad+bc+bd)'
 
     def test_no_change_simple(self):
@@ -65,7 +61,7 @@ class TestExpandDot:
         expr = Dot(x + y, u + v)
         expanded = expand(expr)
         assert isinstance(expanded, Add)
-        assert expanded.N == 4
+        assert len(expanded) == 4
         assert str(expanded) == '(Dot(x,u)+Dot(x,v)+Dot(y,u)+Dot(y,v))'
 
 

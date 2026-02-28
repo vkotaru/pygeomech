@@ -15,24 +15,24 @@ class TestMatrixCreation:
         assert str(M) == 'M'
         assert M.type == ExprType.MATRIX
         assert M.size == (3, 3)
-        assert not M.isConstant
+        assert not M.is_constant
 
     def test_constant_matrix(self):
         J = Matrix('J', attr=['Constant'])
-        assert J.isConstant
+        assert J.is_constant
 
     def test_symmetric_matrix(self):
         J = Matrix('J', attr=['Constant', 'SymmetricMatrix'])
-        assert J.isSymmetric
-        assert J.isConstant
+        assert J.is_symmetric
+        assert J.is_constant
 
     def test_zero_matrix(self):
-        assert ZeroMatrix.isZero
-        assert ZeroMatrix.isConstant
+        assert ZeroMatrix.is_zero
+        assert ZeroMatrix.is_constant
         assert str(ZeroMatrix) == '0'
 
     def test_identity_matrix(self):
-        assert IdentityMatrix.isConstant
+        assert IdentityMatrix.is_constant
         assert str(IdentityMatrix) == 'I'
 
     def test_aliases(self):
@@ -111,7 +111,7 @@ class TestMatrixOperations:
         J = Matrix('J', attr=['Constant'])
         d = J.delta()
         assert str(d) == 'O'
-        assert d.isConstant
+        assert d.is_constant
 
     def test_diff_variable(self):
         M = Matrix('M')
@@ -121,8 +121,8 @@ class TestMatrixOperations:
     def test_diff_constant(self):
         J = Matrix('J', attr=['Constant'])
         dJ = J.t_diff()
-        assert dJ.isConstant
-        assert dJ.isZero
+        assert dJ.is_constant
+        assert dJ.is_zero
 
 
 class TestMatrixIntegrate:
@@ -148,7 +148,7 @@ class TestSkewSymmMatrix:
 class TestSO3Manifold:
     def test_so3_creation(self):
         R = SO3('R')
-        assert R.isManifold
+        assert R.is_manifold
         assert R.type == ExprType.MATRIX
 
     def test_so3_variation_vector(self):

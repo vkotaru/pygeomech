@@ -47,7 +47,7 @@ def vector_rules(expr):
         # --- Dot product rules ---
         case Dot():
             # zero absorption: dot(0, x) or dot(x, 0)
-            if expr.left.isZero or expr.right.isZero:
+            if expr.left.is_zero or expr.right.is_zero:
                 return _ZERO()
 
             match (expr.left, expr.right):
@@ -64,8 +64,8 @@ def vector_rules(expr):
                     return expr
 
                 # dot(q, q) = 1 when unit norm
-                case _ if (expr.left.isUnitNorm
-                           and expr.right.isUnitNorm
+                case _ if (expr.left.is_unit_norm
+                           and expr.right.is_unit_norm
                            and expr.left == expr.right):
                     return _ONE()
 
@@ -76,7 +76,7 @@ def vector_rules(expr):
         case Cross() if expr.left == expr.right:
             return ZeroVector
 
-        case Cross() if expr.left.isZero or expr.right.isZero:
+        case Cross() if expr.left.is_zero or expr.right.is_zero:
             return ZeroVector
 
         # --- Transpose rules ---
@@ -84,7 +84,7 @@ def vector_rules(expr):
             return expr.expr.expr
 
         # --- Hat rules ---
-        case Hat() if expr.expr.isZero:
+        case Hat() if expr.expr.is_zero:
             return ZeroMatrix
 
         case _:

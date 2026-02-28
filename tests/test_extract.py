@@ -102,7 +102,7 @@ class TestExtractFromScalarAdd:
         a, b, _ = scalars
         expr = Add(a, b)
         result = extract_from_scalar(expr, v)
-        assert result.isZero
+        assert result.is_zero
 
 
 class TestExtractFromScalarMul:
@@ -132,7 +132,7 @@ class TestExtractFromScalarMul:
         a, b, _ = scalars
         expr = Mul(a, b)
         result = extract_from_scalar(expr, v)
-        assert result.isZero
+        assert result.is_zero
 
 
 class TestExtractFromScalarDot:
@@ -177,7 +177,7 @@ class TestExtractFromScalarDot:
         v, w, u = vectors
         expr = Dot(w, u)
         result = extract_from_scalar(expr, v)
-        assert result.isZero
+        assert result.is_zero
 
     def test_both_sides_have_vec_raises(self, vectors):
         """Dot(f(vec), g(vec)) raises NotImplementedError."""
@@ -195,7 +195,7 @@ class TestExtractFromScalarLeaf:
         v, _, _ = vectors
         a, _, _ = scalars
         result = extract_from_scalar(a, v)
-        assert result.isZero
+        assert result.is_zero
 
 
 # ===========================================================================
@@ -227,7 +227,7 @@ class TestExtractFromVectorVAdd:
         v, w, u = vectors
         expr = VAdd(w, u)
         result = extract_from_vector(expr, v)
-        assert result.isZero
+        assert result.is_zero
 
 
 class TestExtractFromVectorCross:
@@ -252,7 +252,7 @@ class TestExtractFromVectorCross:
         """Cross(v, v) = 0 → coefficient is ZeroMatrix."""
         v, _, _ = vectors
         result = extract_from_vector(Cross(v, v), v)
-        assert result.isZero
+        assert result.is_zero
 
     def test_cross_left_contains_vec_recursive(self, vectors, matrices):
         """Cross(M*vec, b) → -Hat(b) * extract_from_vector(M*vec, vec) = -Hat(b) * M."""
@@ -279,7 +279,7 @@ class TestExtractFromVectorCross:
         """Cross(a, b) where neither is vec returns ZeroMatrix."""
         v, w, u = vectors
         result = extract_from_vector(Cross(w, u), v)
-        assert result.isZero
+        assert result.is_zero
 
 
 class TestExtractFromVectorMVMul:
@@ -307,7 +307,7 @@ class TestExtractFromVectorMVMul:
         v, w, _ = vectors
         M, _ = matrices
         result = extract_from_vector(MVMul(M, w), v)
-        assert result.isZero
+        assert result.is_zero
 
 
 class TestExtractFromVectorMVMulMatSide:
@@ -442,7 +442,7 @@ class TestExtractFromMatrix:
         P = Matrix('P')
         expr = MAdd(M, P)
         result = extract_from_matrix(expr, N)
-        assert result.isZero
+        assert result.is_zero
 
     def test_mmmul_right_is_target(self, matrices):
         """MMMul(M, target) → coefficient is M."""
@@ -455,7 +455,7 @@ class TestExtractFromMatrix:
         M, N = matrices
         P = Matrix('P')
         result = extract_from_matrix(MMMul(M, P), N)
-        assert result.isZero
+        assert result.is_zero
 
     def test_smmul_raises(self, vectors, matrices):
         """SMMul raises NotImplementedError."""

@@ -1,22 +1,18 @@
-from geomech.base.expr import Expression
-from geomech.base.vectors import Vector, getVectors
-from geomech.base.matrices import Matrix
-from geomech.operations.addition import VAdd, MAdd
-from geomech.operations.multiplication import VVMul, MVMul
-from geomech.operations.transpose import Transpose
+from geomech.core.base import ExprType, Vector, getVectors, Matrix
+from geomech.core.operations import VAdd, MAdd, VVMul, MVMul, Transpose
 
 
 class TestTranspose:
     def test_creation(self):
         x = Vector('x')
         t = Transpose(x)
-        assert t.type == Expression.VECTOR
+        assert t.type == ExprType.VECTOR
         assert str(t) == "(x)'"
 
     def test_preserves_type(self):
         M = Matrix('M')
         t = Transpose(M)
-        assert t.type == Expression.MATRIX
+        assert t.type == ExprType.MATRIX
 
     def test_delta(self):
         x = Vector('x')
@@ -47,7 +43,7 @@ class TestTransposeMul:
         x, y = getVectors(['x', 'y'])
         result = Transpose(x) * y
         assert isinstance(result, VVMul)
-        assert result.type == Expression.SCALAR
+        assert result.type == ExprType.SCALAR
 
     def test_vecT_times_matrix(self):
         x = Vector('x')

@@ -44,38 +44,38 @@ class Expr:
     def get_tangent_vector(self):
         raise NotImplementedError
 
-    # --- flag properties (read from _flags if present, else False) ---
+    # --- flag properties (read from flags if present, else False) ---
 
     def _flag(self, name):
-        flags = getattr(self, '_flags', None)
+        flags = getattr(self, 'flags', None)
         return getattr(flags, name, False) if flags else False
 
     @property
-    def isConstant(self):
+    def is_constant(self):
         return self._flag('is_constant')
 
     @property
-    def isZero(self):
+    def is_zero(self):
         return self._flag('is_zero')
 
     @property
-    def isOnes(self):
+    def is_ones(self):
         return self._flag('is_ones')
 
     @property
-    def isUnitNorm(self):
+    def is_unit_norm(self):
         return self._flag('is_unit_norm')
 
     @property
-    def isNumeric(self):
+    def is_numeric(self):
         return self._flag('is_numeric')
 
     @property
-    def isSymmetric(self):
+    def is_symmetric(self):
         return self._flag('is_symmetric')
 
     @property
-    def isManifold(self):
+    def is_manifold(self):
         return self._flag('is_manifold')
 
     def has(self, elem):
@@ -132,31 +132,31 @@ class Scalar(ScalarExpr):
     name: str = None
     value: Any = None
     attr: list[str] | None = None
-    _flags: ExprFlags = field(init=False, repr=False, default=None)
+    flags: ExprFlags = field(init=False, repr=False, default=None)
 
     def __post_init__(self):
-        self._flags = ExprFlags.from_attr_list(self.attr)
+        self.flags = ExprFlags.from_attr_list(self.attr)
         if self.value is not None:
-            self._flags.is_numeric = True
+            self.flags.is_numeric = True
 
     def __str__(self):
         return self.name
 
     def delta(self):
-        if self.isConstant:
+        if self.is_constant:
             return Scalar('0', value=0)
         else:
             from geomech.core.operations import Variation
             return Variation(self)
 
     def t_diff(self):
-        if self.isConstant:
+        if self.is_constant:
             return Scalar(s='0', value=0, attr=['Constant', 'Zero'])
         from geomech.core.operations.calculus import TimeDerivative
         return TimeDerivative(self)
 
     def t_integrate(self):
-        if self.isConstant:
+        if self.is_constant:
             raise NotImplementedError
         from geomech.core.operations.calculus import TimeIntegral
         return TimeIntegral(self)
@@ -229,10 +229,10 @@ class Vector(VectorExpr):
     size: tuple = (3,)
     value: Any = None
     attr: list[str] | None = None
-    _flags: ExprFlags = field(init=False, repr=False, default=None)
+    flags: ExprFlags = field(init=False, repr=False, default=None)
 
     def __post_init__(self):
-        self._flags = ExprFlags.from_attr_list(self.attr)
+        self.flags = ExprFlags.from_attr_list(self.attr)
         if self.value is None:
             self.value = np.empty(self.size, dtype='object')
         else:
@@ -242,14 +242,14 @@ class Vector(VectorExpr):
         return self.name
 
     def delta(self):
-        if self.isOnes or self.isZero or self.isConstant:
+        if self.is_ones or self.is_zero or self.is_constant:
             return Vector('0', attr=['Constant', 'Zero'])
         else:
             from geomech.core.operations import Variation
             return Variation(self)
 
     def t_diff(self):
-        if self.isConstant:
+        if self.is_constant:
             return Vector(s='0', size=self.size, attr=['Constant', 'Zero'])
         from geomech.core.operations.calculus import TimeDerivative
         return TimeDerivative(self)
@@ -258,7 +258,7 @@ class Vector(VectorExpr):
         return self.delta()
 
     def t_integrate(self):
-        if self.isConstant:
+        if self.is_constant:
             raise NotImplementedError
         from geomech.core.operations.calculus import TimeIntegral
         return TimeIntegral(self)
@@ -386,10 +386,10 @@ class Matrix(MatrixExpr):
     size: tuple = (3, 3)
     value: Any = None
     attr: list[str] | None = None
-    _flags: ExprFlags = field(init=False, repr=False, default=None)
+    flags: ExprFlags = field(init=False, repr=False, default=None)
 
     def __post_init__(self):
-        self._flags = ExprFlags.from_attr_list(self.attr)
+        self.flags = ExprFlags.from_attr_list(self.attr)
         if self.value is None:
             self.value = np.empty(self.size, dtype='object')
 
@@ -397,20 +397,20 @@ class Matrix(MatrixExpr):
         return self.name
 
     def delta(self):
-        if self.isOnes or self.isZero or self.isConstant:
+        if self.is_ones or self.is_zero or self.is_constant:
             return Matrix('O', attr=['Constant', 'Zero'])
         else:
             from geomech.core.operations import Variation
             return Variation(self)
 
     def t_diff(self):
-        if self.isConstant:
+        if self.is_constant:
             return Matrix(s='0', size=self.size, attr=['Constant', 'Zero'])
         from geomech.core.operations.calculus import TimeDerivative
         return TimeDerivative(self)
 
     def t_integrate(self):
-        if self.isConstant:
+        if self.is_constant:
             raise NotImplementedError
         from geomech.core.operations.calculus import TimeIntegral
         return TimeIntegral(self)

@@ -100,19 +100,19 @@ class _NaryMixin(_BaseMixin):
     """Shared properties for n-ary addition operations."""
 
     @property
-    def isConstant(self):
-        return all(n.isConstant for n in self.nodes)
+    def is_constant(self):
+        return all(n.is_constant for n in self.nodes)
 
     @property
-    def isZero(self):
-        return all(n.isZero for n in self.nodes)
+    def is_zero(self):
+        return all(n.is_zero for n in self.nodes)
 
     def __str__(self):
         return '(' + '+'.join(str(n) for n in self.nodes) + ')'
 
     def delta(self):
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector
@@ -121,7 +121,7 @@ class _NaryMixin(_BaseMixin):
 
     def t_diff(self):
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector
@@ -145,12 +145,12 @@ class _BinaryMixin(_BaseMixin):
         return self.nodes[1]
 
     @property
-    def isConstant(self):
-        return self.left.isConstant and self.right.isConstant
+    def is_constant(self):
+        return self.left.is_constant and self.right.is_constant
 
     @property
-    def isZero(self):
-        return self.left.isZero or self.right.isZero
+    def is_zero(self):
+        return self.left.is_zero or self.right.is_zero
 
     def _apply_rule(self, op_name):
         """Apply linearity rule (delta or t_diff) with product-rule logic.
@@ -158,15 +158,15 @@ class _BinaryMixin(_BaseMixin):
         op_name: 'delta' or 't_diff'
         """
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector
                 case ExprType.MATRIX: return ZeroMatrix
         op = lambda node: getattr(node, op_name)()
-        if self.left.isConstant:
+        if self.left.is_constant:
             return type(self)(self.left, op(self.right))
-        if self.right.isConstant:
+        if self.right.is_constant:
             return type(self)(op(self.left), self.right)
         # Product rule: op(l*r) = op(l)*r + l*op(r)
         term1 = type(self)(op(self.left), self.right)
@@ -196,16 +196,16 @@ class _UnaryMixin(_BaseMixin):
         return self.nodes[0]
 
     @property
-    def isConstant(self):
-        return self.expr.isConstant
+    def is_constant(self):
+        return self.expr.is_constant
 
     @property
-    def isZero(self):
-        return self.expr.isZero
+    def is_zero(self):
+        return self.expr.is_zero
 
     def delta(self):
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector
@@ -214,7 +214,7 @@ class _UnaryMixin(_BaseMixin):
 
     def t_diff(self):
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector
@@ -240,7 +240,7 @@ class _CalcUnaryMixin(_UnaryMixin):
 
     def t_integrate(self):
         from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
-        if self.isConstant:
+        if self.is_constant:
             match self.type:
                 case ExprType.SCALAR: return Zero
                 case ExprType.VECTOR: return ZeroVector

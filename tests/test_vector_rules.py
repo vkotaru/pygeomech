@@ -77,13 +77,13 @@ class TestDotZeroAbsorption:
         """dot(x, 0) = 0 — dot with zero vector."""
         x = Vector('x')
         result = vector_rules(Dot(x, ZeroVector))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_zero_left(self):
         """dot(0, x) = 0 — dot with zero vector."""
         x = Vector('x')
         result = vector_rules(Dot(ZeroVector, x))
-        assert result.isZero
+        assert result.is_zero
 
 
 # ---------------------------------------------------------------------------
@@ -95,19 +95,19 @@ class TestOrthogonality:
         """dot(x, cross(x, y)) = 0 — x is perpendicular to x x y."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(x, Cross(x, y)))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_x_cross_y_x(self):
         """dot(x, cross(y, x)) = 0 — x is perpendicular to y x x."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(x, Cross(y, x)))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_x_cross_y_y(self):
         """dot(x, cross(y, y)) = 0 — cross of vector with itself is zero."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(x, Cross(y, y)))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_x_cross_y_z_unchanged(self):
         """dot(x, cross(y, z)) unchanged — no orthogonality relation."""
@@ -125,19 +125,19 @@ class TestOrthogonalityCrossLeft:
         """dot(cross(x, y), x) = 0 — same rule, cross on left."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(Cross(x, y), x))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_cross_y_x_x(self):
         """dot(cross(y, x), x) = 0 — same rule, cross on left."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(Cross(y, x), x))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_cross_y_y_x(self):
         """dot(cross(y, y), x) = 0 — self-cross is zero."""
         x, y = getVectors(['x', 'y'])
         result = vector_rules(Dot(Cross(y, y), x))
-        assert result.isZero
+        assert result.is_zero
 
     def test_dot_cross_y_z_x_unchanged(self):
         """dot(cross(y, z), x) unchanged — no orthogonality relation."""

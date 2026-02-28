@@ -1,41 +1,38 @@
 import pytest
-from geomech.base.expr import Expression
-from geomech.base.scalars import Scalar, ScalarExpr, Zero, One, Number, getScalars
-from geomech.operations.addition import Add
-from geomech.operations.multiplication import Mul, SVMul, SMMul
-from geomech.operations.geometry import Delta
+from geomech.core.base import ExprType, Scalar, ScalarExpr, Zero, One, Number, getScalars
+from geomech.core.operations import Add, Mul, SVMul, SMMul, Variation
 
 
 class TestScalarCreation:
     def test_basic_scalar(self):
         a = Scalar('a')
         assert str(a) == 'a'
-        assert a.type == Expression.SCALAR
+        assert a.type == ExprType.SCALAR
         assert a.size == (1,)
-        assert not a.isConstant
-        assert not a.isZero
+        assert not a.is_constant
+        assert not a.is_zero
 
     def test_constant_scalar(self):
         m = Scalar('m', attr=['Constant'])
-        assert m.isConstant
-        assert not m.isZero
+        assert m.is_constant
+        assert not m.is_zero
 
     def test_zero_scalar(self):
-        assert Zero.isZero
-        assert Zero.isConstant
+        assert Zero.is_zero
+        assert Zero.is_constant
         assert str(Zero) == '0'
         assert Zero.value == 0
 
     def test_one_scalar(self):
-        assert One.isOnes
-        assert One.isConstant
+        assert One.is_ones
+        assert One.is_constant
         assert str(One) == '1'
         assert One.value == 1
 
     def test_numeric_scalar(self):
         n = Scalar('(3.14)', value=3.14, attr=['Constant'])
-        assert n.isNumeric
-        assert n.isConstant
+        assert n.is_numeric
+        assert n.is_constant
         assert n.value == 3.14
 
     def test_get_scalars_string(self):
@@ -51,22 +48,22 @@ class TestScalarCreation:
 
     def test_get_scalars_with_attr(self):
         m, g = getScalars('m g', attr=['Constant'])
-        assert m.isConstant
-        assert g.isConstant
+        assert m.is_constant
+        assert g.is_constant
 
     def test_number_float(self):
         n = Number(3.14)
-        assert n.isConstant
+        assert n.is_constant
         assert n.value == 3.14
 
     def test_number_int(self):
         n = Number(5)
-        assert n.isConstant
+        assert n.is_constant
         assert n.value == 5
 
     def test_number_string(self):
         n = Number('pi')
-        assert n.isConstant
+        assert n.is_constant
         assert str(n) == 'pi'
 
 
@@ -91,7 +88,7 @@ class TestScalarArithmetic:
         a, b = getScalars('a b')
         result = a * b
         assert isinstance(result, Mul)
-        assert result.type == Expression.SCALAR
+        assert result.type == ExprType.SCALAR
 
     def test_scalar_mul_int(self):
         a = Scalar('a')
@@ -99,27 +96,27 @@ class TestScalarArithmetic:
         assert isinstance(result, Mul)
 
     def test_scalar_mul_vector(self):
-        from geomech.base.vectors import Vector
+        from geomech.core.base import Vector
         a = Scalar('a')
         x = Vector('x')
         result = a * x
         assert isinstance(result, SVMul)
-        assert result.type == Expression.VECTOR
+        assert result.type == ExprType.VECTOR
 
     def test_scalar_mul_matrix(self):
-        from geomech.base.matrices import Matrix
+        from geomech.core.base import Matrix
         a = Scalar('a')
         M = Matrix('M')
         result = a * M
         assert isinstance(result, SMMul)
-        assert result.type == Expression.MATRIX
+        assert result.type == ExprType.MATRIX
 
 
 class TestScalarOperations:
     def test_delta_variable(self):
         a = Scalar('a')
         d = a.delta()
-        assert isinstance(d, Delta)
+        assert isinstance(d, Variation)
         assert str(d) == '\\delta{a}'
 
     def test_delta_constant(self):
@@ -130,15 +127,15 @@ class TestScalarOperations:
 
     def test_diff_variable(self):
         a = Scalar('a')
-        da = a.diff()
-        assert str(da) == 'dot_a'
+        da = a.t_diff()
+        assert str(da) == '\\frac{d}{dt}(a)'
 
     def test_diff_constant(self):
         m = Scalar('m', attr=['Constant'])
-        dm = m.diff()
+        dm = m.t_diff()
         assert str(dm) == '0'
-        assert dm.isConstant
-        assert dm.isZero
+        assert dm.is_constant
+        assert dm.is_zero
 
     def test_has(self):
         a = Scalar('a')
@@ -149,14 +146,14 @@ class TestScalarOperations:
 
     def test_integrate_undoes_diff(self):
         a = Scalar('a')
-        da = a.diff()
-        result = da.integrate()
+        da = a.t_diff()
+        result = da.t_integrate()
         assert str(result) == 'a'
 
     def test_integrate_adds_prefix(self):
         a = Scalar('a')
-        result = a.integrate()
-        assert str(result) == 'int_a'
+        result = a.t_integrate()
+        assert str(result) == '\\int{a}dt'
 
     def test_equality(self):
         a1 = Scalar('a')

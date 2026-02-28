@@ -16,11 +16,11 @@ class TestVectorCreation:
         assert str(x) == 'x'
         assert x.type == ExprType.VECTOR
         assert x.size == (3,)
-        assert not x.isConstant
+        assert not x.is_constant
 
     def test_constant_vector(self):
         e3 = Vector('e3', attr=['Constant'])
-        assert e3.isConstant
+        assert e3.is_constant
 
     def test_vector_with_value(self):
         v = Vector('v', value=np.array([0., 0., 1.]))
@@ -152,7 +152,7 @@ class TestVectorOperations:
         e3 = Vector('e3', attr=['Constant'])
         d = e3.delta()
         assert str(d) == '0'
-        assert d.isConstant
+        assert d.is_constant
 
     def test_diff_variable(self):
         x = Vector('x')
@@ -162,8 +162,8 @@ class TestVectorOperations:
     def test_diff_constant(self):
         e3 = Vector('e3', attr=['Constant'])
         de3 = e3.t_diff()
-        assert de3.isConstant
-        assert de3.isZero
+        assert de3.is_constant
+        assert de3.is_zero
 
     def test_integrate_undoes_diff(self):
         x = Vector('x')
@@ -179,16 +179,16 @@ class TestVectorOperations:
 
 class TestZeroVector:
     def test_zero_vector_is_constant(self):
-        assert ZeroVector.isConstant
+        assert ZeroVector.is_constant
 
     def test_zero_vector_is_zero(self):
-        assert ZeroVector.isZero
+        assert ZeroVector.is_zero
 
 
 class TestS2Manifold:
     def test_s2_creation(self):
         q = S2('q')
-        assert q.isManifold
+        assert q.is_manifold
         assert q.type == ExprType.VECTOR
 
     def test_s2_variation_vector(self):

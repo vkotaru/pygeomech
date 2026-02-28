@@ -83,7 +83,7 @@ def _leaf_detail(expr):
     value = getattr(expr, 'value', None)
     if value is not None and not _is_default_value(value):
         parts.append(f'value={value}')
-    flags = getattr(expr, '_flags', None)
+    flags = getattr(expr, 'flags', None)
     if flags is not None:
         active = [f for f in ['is_constant', 'is_zero', 'is_ones', 'is_unit_norm',
                                'is_symmetric', 'is_numeric', 'is_manifold']

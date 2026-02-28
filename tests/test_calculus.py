@@ -66,19 +66,19 @@ class TestVariationStr:
 class TestVariationProperties:
     def test_is_constant_true(self):
         c = Scalar('c', attr=['Constant'])
-        assert Variation(c).isConstant is True
+        assert Variation(c).is_constant is True
 
     def test_is_constant_false(self):
         a = Scalar('a')
-        assert Variation(a).isConstant is False
+        assert Variation(a).is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert Variation(z).isZero is True
+        assert Variation(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert Variation(x).isZero is False
+        assert Variation(x).is_zero is False
 
 
 class TestVariationHas:
@@ -238,19 +238,19 @@ class TestTimeDerivativeStr:
 class TestTimeDerivativeProperties:
     def test_is_constant_true(self):
         c = Scalar('c', attr=['Constant'])
-        assert TimeDerivative(c).isConstant is True
+        assert TimeDerivative(c).is_constant is True
 
     def test_is_constant_false(self):
         a = Scalar('a')
-        assert TimeDerivative(a).isConstant is False
+        assert TimeDerivative(a).is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert TimeDerivative(z).isZero is True
+        assert TimeDerivative(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert TimeDerivative(x).isZero is False
+        assert TimeDerivative(x).is_zero is False
 
 
 class TestTimeDerivativeOperators:
@@ -324,19 +324,19 @@ class TestTimeIntegralStr:
 class TestTimeIntegralProperties:
     def test_is_constant_true(self):
         c = Scalar('c', attr=['Constant'])
-        assert TimeIntegral(c).isConstant is True
+        assert TimeIntegral(c).is_constant is True
 
     def test_is_constant_false(self):
         a = Scalar('a')
-        assert TimeIntegral(a).isConstant is False
+        assert TimeIntegral(a).is_constant is False
 
     def test_is_zero_true(self):
         z = Vector('0', attr=['Constant', 'Zero'])
-        assert TimeIntegral(z).isZero is True
+        assert TimeIntegral(z).is_zero is True
 
     def test_is_zero_false(self):
         x = Vector('x')
-        assert TimeIntegral(x).isZero is False
+        assert TimeIntegral(x).is_zero is False
 
 
 class TestTimeIntegralOperators:

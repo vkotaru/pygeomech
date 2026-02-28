@@ -1,13 +1,7 @@
 import pytest
-from geomech.base.scalars import Scalar, getScalars
-from geomech.base.vectors import Vector, getVectors
-from geomech.base.matrices import Matrix, getMatrices
-from geomech.operations.addition import Add, VAdd, MAdd
-from geomech.operations.multiplication import Mul, SVMul, MMMul, MVMul
-from geomech.operations.geometry import Dot, Cross, Hat, Vee, Delta
-from geomech.operations.transpose import Transpose
-from geomech.operations.expansion import expand
-from geomech.operations.simplification import simplify, full_simplify
+from geomech.core.base import Scalar, getScalars, Vector, getVectors, Matrix, getMatrices, ExprType
+from geomech.core.operations import Add, VAdd, MAdd, Mul, SVMul, MMMul, MVMul, Dot, Cross, Hat, Vee, Variation, Transpose
+from geomech.core.transformations import expand, simplify, full_simplify
 
 
 class TestProductRuleDelta:
@@ -78,13 +72,13 @@ class TestAdditionDiff:
     def test_scalar_add_diff(self):
         a, b = getScalars('a b')
         expr = a + b
-        d = expr.diff()
+        d = expr.t_diff()
         assert isinstance(d, Add)
 
     def test_vector_add_diff(self):
         x, y = getVectors(['x', 'y'])
         expr = x + y
-        d = expr.diff()
+        d = expr.t_diff()
         assert isinstance(d, VAdd)
 
 
@@ -94,17 +88,17 @@ class TestNaryAdd:
         result = Add(a, b, Add(c, d, e))
         # Nested Add should be flattened
         assert isinstance(result, Add)
-        assert result.N == 5
+        assert len(result) == 5
 
     def test_nary_vector_add(self):
         x, y, z = getVectors(['x', 'y', 'z'])
         result = VAdd(x, y, z)
-        assert result.N == 3
+        assert len(result) == 3
 
     def test_nary_matrix_add(self):
         A, B, C = getMatrices('A B C')
         result = MAdd(A, B, C)
-        assert result.N == 3
+        assert len(result) == 3
 
 
 class TestExpansion:
@@ -142,7 +136,7 @@ class TestGeometry:
 
     def test_delta_creation(self):
         x = Vector('x')
-        d = Delta(x)
+        d = Variation(x)
         assert str(d) == '\\delta{x}'
 
 
@@ -186,11 +180,11 @@ class TestSanityCheck:
 
         # Manifolds
         q = S2('q')
-        assert q.isManifold
+        assert q.is_manifold
         xi = q.get_variation_vector()
         om = q.get_tangent_vector()
 
         R = SO3('R')
-        assert R.isManifold
+        assert R.is_manifold
         eta = R.get_variation_vector()
         Om = R.get_tangent_vector()
