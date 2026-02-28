@@ -63,23 +63,23 @@ mat_vec_mul_delta = mat_vec_mul.delta()
 mat_scalar_mul_delta = mat_scalar_mul.delta()
 
 #
-dx = x.diff()
+dx = x.t_diff()
 delx = x.delta()
-ddelx = delx.diff()
+ddelx = delx.t_diff()
 dela = a.delta()
-da = a.diff()
+da = a.t_diff()
 
-x2 = dx.integrate()
-x2_ = x.integrate()
+x2 = dx.t_integrate()
+x2_ = x.t_integrate()
 
-delx2 = ddelx.integrate()
+delx2 = ddelx.t_integrate()
 
 # -------------
 q = S2('q')
 xi = q.get_variation_vector()
 om = q.get_tangent_vector()
-dxi = xi.diff()
-dom = om.diff()
+dxi = xi.t_diff()
+dom = om.t_diff()
 delxi = xi.delta()
 delom = om.delta()
 
@@ -87,8 +87,8 @@ delom = om.delta()
 R = SO3('R')
 eta = R.get_variation_vector()
 Om = R.get_tangent_vector()
-deta = eta.diff()
-dOm = Om.diff()
+deta = eta.t_diff()
+dOm = Om.t_diff()
 deleta = eta.delta()
 delOm = Om.delta()
 

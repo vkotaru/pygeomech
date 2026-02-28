@@ -1,6 +1,4 @@
 from geomech import *
-from geomech.operations.print_tree import print_latex
-from geomech.utils.errors import ExpressionMismatchError
 import numpy as np
 
 
@@ -15,15 +13,15 @@ def rigid_pendulum():
     Om = R.get_tangent_vector()
     eta = R.get_variation_vector()
     x = R * rho
-    v = x.diff()
+    v = x.t_diff()
 
     KE = Dot(Om, J * Om) * 0.5 + Dot(v, v) * m * 0.5
     PE = m * g * Dot(x, e3)
     L = KE - PE
 
     deltaW = Dot(eta, M)
-    eqns = compute_eom(L, deltaW, [[], [], [R]])
-    print_latex(eqns)
+    eqns = compute_eom(L, deltaW, SystemVariables(matrices=[R]))
+    print_eom(eqns)
 
     print('done')
 
@@ -45,7 +43,7 @@ def double_rigid_pendulum():
 
     x1 = R1 * rho1
     x2 = R1 * l1 + R2 * rho2
-    v2 = x2.diff()
+    v2 = x2.t_diff()
 
     KE = Dot(Om1, J1 * Om1) * 0.5 + Dot(Om2, J2 * Om2) * 0.5 + Dot(v2, v2) * m2 * 0.5
     PE = (m1 * g * Dot(R1 * rho1, e3)) + (m2 * g * Dot(R2 * rho2, e3))
@@ -53,8 +51,8 @@ def double_rigid_pendulum():
 
     deltaW = Dot(eta1, M1) + Dot(eta2, M2)
 
-    eqns = compute_eom(L, deltaW, [[], [], [R1, R2]])
-    print_latex(eqns)
+    eqns = compute_eom(L, deltaW, SystemVariables(matrices=[R1, R2]))
+    print_eom(eqns)
 
     print('done')
 
