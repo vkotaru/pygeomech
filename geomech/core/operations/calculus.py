@@ -37,6 +37,10 @@ class TimeDerivative(_CalcUnaryMixin, Expr):
     def __str__(self):
         return '\\frac{d}{dt}(' + str(self.expr) + ')'
 
+    def t_integrate(self):
+        """∫(d/dt(x)) dt = x — cancellation."""
+        return self.expr
+
 
 # ---------------------------------------------------------------------------
 # TimeIntegral  (∫ dt operator as a tree node)
@@ -52,3 +56,7 @@ class TimeIntegral(_CalcUnaryMixin, Expr):
 
     def __str__(self):
         return '\\int{' + str(self.expr) + '}dt'
+
+    def t_diff(self):
+        """d/dt(∫x dt) = x — cancellation."""
+        return self.expr

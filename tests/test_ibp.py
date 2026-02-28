@@ -6,6 +6,7 @@ from geomech.core.base.expressions import Scalar, Vector
 from geomech.core.operations.addition import Add
 from geomech.core.operations.multiplication import Mul
 from geomech.core.operations.geometry import Dot
+from geomech.core.operations.calculus import TimeDerivative
 from geomech.core.math.ibp import _apply_ibp, integrate_by_parts
 
 
@@ -20,8 +21,8 @@ def vectors():
 @pytest.fixture
 def dot_vectors():
     """Time-derivative vectors and their integrals."""
-    dot_eta = Vector('dot_eta')
     eta = Vector('eta')
+    dot_eta = TimeDerivative(eta)
     return dot_eta, eta
 
 
@@ -55,18 +56,17 @@ class TestIbpDot:
     """IBP on Dot where left == target."""
 
     def test_dot_left_is_target(self, dot_vectors):
-        """Dot(dot_eta, w) → Dot(-eta, dot_w)."""
+        """Dot(d/dt(eta), w) → Dot(-eta, d/dt(w))."""
         dot_eta, eta = dot_vectors
         w = Vector('w')
         expr = Dot(dot_eta, w)
         result = _apply_ibp(expr, dot_eta)
         # Result should be Dot(-integrate(dot_eta), diff(w))
         assert isinstance(result, Dot)
-        # Left side: dot_eta.t_integrate() * (-1)
-        # dot_eta.t_integrate() should give eta
-        # Right side: w.t_diff() should give dot_w
+        # Left side: TimeDerivative(eta).t_integrate() * (-1) → SVMul(eta, -1)
+        # Right side: w.t_diff() → TimeDerivative(w)
         assert result.left.has(eta)
-        assert 'dot_w' in str(result.right)
+        assert isinstance(result.right, TimeDerivative)
 
 
 class TestIbpRecursion:
@@ -118,9 +118,9 @@ class TestIntegrateByParts:
     """Full IBP pipeline: expand → simplify → collect → _apply_ibp → simplify."""
 
     def test_simple_dot(self, dot_vectors):
-        """Simple Dot(dot_eta, w) through the full pipeline.
+        """Simple Dot(d/dt(eta), w) through the full pipeline.
 
-        IBP gives Dot(-eta, dot_w), simplify pulls -1 out → Mul(-1, Dot(eta, dot_w)).
+        IBP gives Dot(-eta, d/dt(w)), simplify pulls -1 out → Mul(-1, Dot(eta, d/dt(w))).
         """
         dot_eta, eta = dot_vectors
         w = Vector('w')
@@ -131,15 +131,15 @@ class TestIntegrateByParts:
         assert result.left.value == -1
         assert isinstance(result.right, Dot)
         assert str(result.right.left) == 'eta'
-        assert str(result.right.right) == 'dot_w'
+        assert isinstance(result.right.right, TimeDerivative)
 
     def test_flipped_dot_gets_collected_then_ibpd(self, dot_vectors):
-        """Dot(w, dot_eta) — collect flips it, then IBP applies."""
+        """Dot(w, d/dt(eta)) — collect flips it, then IBP applies."""
         dot_eta, eta = dot_vectors
         w = Vector('w')
         expr = Dot(w, dot_eta)
         result = integrate_by_parts(expr, [dot_eta])
-        # collect flips to Dot(dot_eta, w), then IBP → Mul(-1, Dot(eta, dot_w))
+        # collect flips to Dot(dot_eta, w), then IBP → Mul(-1, Dot(eta, d/dt(w)))
         assert isinstance(result, Mul)
         assert result.left.value == -1
         assert isinstance(result.right, Dot)

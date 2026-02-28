@@ -12,6 +12,8 @@ class _BaseMixin:
     """Shared base for all operation nodes."""
 
     def has(self, elem):
+        if self == elem:
+            return True
         return any(n.has(elem) for n in self.nodes)
 
     @property
@@ -225,8 +227,22 @@ class _UnaryMixin(_BaseMixin):
 # ---------------------------------------------------------------------------
 
 class _CalcUnaryMixin(_UnaryMixin):
-    """Type-preserving unary — delegates type to inner expression."""
+    """Type-preserving unary — delegates type to inner expression.
+
+    Pushes t_integrate() inside by default so that e.g.
+    Variation(expr).t_integrate() → Variation(expr.t_integrate()).
+    Subclasses (TimeDerivative, TimeIntegral) override for cancellation.
+    """
 
     @property
     def type(self):
         return self.expr.type
+
+    def t_integrate(self):
+        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        if self.isConstant:
+            match self.type:
+                case ExprType.SCALAR: return Zero
+                case ExprType.VECTOR: return ZeroVector
+                case ExprType.MATRIX: return ZeroMatrix
+        return type(self)(self.expr.t_integrate())

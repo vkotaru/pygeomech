@@ -752,14 +752,14 @@ class TestMulDiff:
         a, b = getScalars('a b')
         d = Mul(a, b).t_diff()
         assert isinstance(d, Add)
-        assert str(d) == '(dot_ab+adot_b)'
+        assert str(d) == '(\\frac{d}{dt}(a)b+a\\frac{d}{dt}(b))'
 
     def test_mul_diff_constant_left(self):
         m = Scalar('m', attr=['Constant'])
         a = Scalar('a')
         d = Mul(m, a).t_diff()
         assert isinstance(d, Mul)
-        assert str(d) == 'mdot_a'
+        assert str(d) == 'm\\frac{d}{dt}(a)'
 
     def test_mul_diff_both_constant(self):
         m = Scalar('m', attr=['Constant'])

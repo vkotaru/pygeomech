@@ -163,12 +163,18 @@ def _eliminate(expr):
             inner = _eliminate(expr.expr)
             if _is_zero(inner):
                 return _zero_for(inner)
+            # d/dt(∫x dt) = x
+            if isinstance(inner, TimeIntegral):
+                return inner.expr
             return TimeDerivative(inner)
 
         case TimeIntegral():
             inner = _eliminate(expr.expr)
             if _is_zero(inner):
                 return _zero_for(inner)
+            # ∫(d/dt(x)) dt = x
+            if isinstance(inner, TimeDerivative):
+                return inner.expr
             return TimeIntegral(inner)
 
         # ---- leaves ----

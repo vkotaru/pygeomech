@@ -16,6 +16,7 @@ Distribution rules implemented:
 from geomech.core.operations.addition import Add, VAdd, MAdd
 from geomech.core.operations.multiplication import Mul, SVMul, SMMul, MVMul, MMMul
 from geomech.core.operations.geometry import Dot, Cross, Hat, Vee
+from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
 
 
 def _distribute(l, r, op_cls, sum_cls, l_sum_cls, r_sum_cls):
@@ -97,6 +98,15 @@ def expand(expr):
 
         case Vee():
             return Vee(expand(expr.expr))
+
+        case Variation():
+            return Variation(expand(expr.expr))
+
+        case TimeDerivative():
+            return TimeDerivative(expand(expr.expr))
+
+        case TimeIntegral():
+            return TimeIntegral(expand(expr.expr))
 
         # --- Leaves and everything else ---
         case _:

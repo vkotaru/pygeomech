@@ -446,19 +446,19 @@ class TestAdditionDiff:
         a, b = getScalars('a b')
         d = (a + b).t_diff()
         assert isinstance(d, Add)
-        assert str(d) == '(dot_a+dot_b)'
+        assert str(d) == '(\\frac{d}{dt}(a)+\\frac{d}{dt}(b))'
 
     def test_vector_add_diff(self):
         x, y = getVectors(['x', 'y'])
         d = (x + y).t_diff()
         assert isinstance(d, VAdd)
-        assert str(d) == '(dot_x+dot_y)'
+        assert str(d) == '(\\frac{d}{dt}(x)+\\frac{d}{dt}(y))'
 
     def test_matrix_add_diff(self):
         M, N = getMatrices('M N')
         d = (M + N).t_diff()
         assert isinstance(d, MAdd)
-        assert str(d) == '(dot_M+dot_N)'
+        assert str(d) == '(\\frac{d}{dt}(M)+\\frac{d}{dt}(N))'
 
     def test_all_constant_scalar_diff_is_zero(self):
         m, g = getScalars('m g', attr=['Constant'])

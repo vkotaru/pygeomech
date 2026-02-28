@@ -6,6 +6,7 @@ current node.  O(n) single pass — no has_nested_scalars predicate needed.
 from geomech.core.operations.addition import Add, VAdd, MAdd
 from geomech.core.operations.multiplication import Mul, SVMul, SMMul, MVMul, MMMul
 from geomech.core.operations.geometry import Dot, Cross
+from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
 
 
 def pull(expr):
@@ -91,6 +92,16 @@ def pull(expr):
                     return SMMul(MMMul(l, r.left), r.right)
                 case _:
                     return MMMul(l, r)
+
+        # --- Calculus unary: recurse into child ---
+        case Variation():
+            return Variation(pull(expr.expr))
+
+        case TimeDerivative():
+            return TimeDerivative(pull(expr.expr))
+
+        case TimeIntegral():
+            return TimeIntegral(pull(expr.expr))
 
         # --- Leaf / unhandled ---
         case _:

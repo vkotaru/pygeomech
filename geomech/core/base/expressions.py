@@ -44,6 +44,40 @@ class Expr:
     def get_tangent_vector(self):
         raise NotImplementedError
 
+    # --- flag properties (read from _flags if present, else False) ---
+
+    def _flag(self, name):
+        flags = getattr(self, '_flags', None)
+        return getattr(flags, name, False) if flags else False
+
+    @property
+    def isConstant(self):
+        return self._flag('is_constant')
+
+    @property
+    def isZero(self):
+        return self._flag('is_zero')
+
+    @property
+    def isOnes(self):
+        return self._flag('is_ones')
+
+    @property
+    def isUnitNorm(self):
+        return self._flag('is_unit_norm')
+
+    @property
+    def isNumeric(self):
+        return self._flag('is_numeric')
+
+    @property
+    def isSymmetric(self):
+        return self._flag('is_symmetric')
+
+    @property
+    def isManifold(self):
+        return self._flag('is_manifold')
+
     def has(self, elem):
         return str(elem) == str(self)
 
@@ -108,27 +142,6 @@ class Scalar(ScalarExpr):
     def __str__(self):
         return self.name
 
-    # backward-compat flag properties
-    @property
-    def isConstant(self):
-        return self._flags.is_constant
-
-    @property
-    def isZero(self):
-        return self._flags.is_zero
-
-    @property
-    def isOnes(self):
-        return self._flags.is_ones
-
-    @property
-    def isNumeric(self):
-        return self._flags.is_numeric
-
-    @property
-    def isManifold(self):
-        return self._flags.is_manifold
-
     def delta(self):
         if self.isConstant:
             return Scalar('0', value=0)
@@ -139,25 +152,14 @@ class Scalar(ScalarExpr):
     def t_diff(self):
         if self.isConstant:
             return Scalar(s='0', value=0, attr=['Constant', 'Zero'])
-        else:
-            return Scalar(s='dot_' + self.name)
+        from geomech.core.operations.calculus import TimeDerivative
+        return TimeDerivative(self)
 
     def t_integrate(self):
         if self.isConstant:
             raise NotImplementedError
-        s = self.name
-        if 'dot_' in s:
-            s = s.replace('dot_', '')
-            return Scalar(s=s)
-        else:
-            return Scalar(s='int_' + s)
-
-    def has(self, elem):
-        return self.name == elem.name
-
-    # allow keyword arg 's' as alias for 'name' (backward compat)
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+        from geomech.core.operations.calculus import TimeIntegral
+        return TimeIntegral(self)
 
     # support Scalar(s='a') via custom __init__
     def __init__(self, s=None, *, name=None, value=None, attr=None, size=None):
@@ -239,27 +241,6 @@ class Vector(VectorExpr):
     def __str__(self):
         return self.name
 
-    # backward-compat flag properties
-    @property
-    def isConstant(self):
-        return self._flags.is_constant
-
-    @property
-    def isZero(self):
-        return self._flags.is_zero
-
-    @property
-    def isOnes(self):
-        return self._flags.is_ones
-
-    @property
-    def isUnitNorm(self):
-        return self._flags.is_unit_norm
-
-    @property
-    def isManifold(self):
-        return self._flags.is_manifold
-
     def delta(self):
         if self.isOnes or self.isZero or self.isConstant:
             return Vector('0', attr=['Constant', 'Zero'])
@@ -270,8 +251,8 @@ class Vector(VectorExpr):
     def t_diff(self):
         if self.isConstant:
             return Vector(s='0', size=self.size, attr=['Constant', 'Zero'])
-        else:
-            return Vector(s='dot_' + self.name, size=self.size)
+        from geomech.core.operations.calculus import TimeDerivative
+        return TimeDerivative(self)
 
     def get_variation_vector(self):
         return self.delta()
@@ -279,12 +260,8 @@ class Vector(VectorExpr):
     def t_integrate(self):
         if self.isConstant:
             raise NotImplementedError
-        s = self.name
-        if 'dot_' in s:
-            new_s = s.replace('dot_', '')
-            return Vector(s=new_s, size=self.size)
-        else:
-            return Vector(s='int_' + s, size=self.size)
+        from geomech.core.operations.calculus import TimeIntegral
+        return TimeIntegral(self)
 
     # support Vector(s='x') via custom __init__
     def __init__(self, s=None, *, name=None, size=(3,), value=None, attr=None):
@@ -419,27 +396,6 @@ class Matrix(MatrixExpr):
     def __str__(self):
         return self.name
 
-    # backward-compat flag properties
-    @property
-    def isConstant(self):
-        return self._flags.is_constant
-
-    @property
-    def isZero(self):
-        return self._flags.is_zero
-
-    @property
-    def isOnes(self):
-        return self._flags.is_ones
-
-    @property
-    def isSymmetric(self):
-        return self._flags.is_symmetric
-
-    @property
-    def isManifold(self):
-        return self._flags.is_manifold
-
     def delta(self):
         if self.isOnes or self.isZero or self.isConstant:
             return Matrix('O', attr=['Constant', 'Zero'])
@@ -450,18 +406,14 @@ class Matrix(MatrixExpr):
     def t_diff(self):
         if self.isConstant:
             return Matrix(s='0', size=self.size, attr=['Constant', 'Zero'])
-        else:
-            return Matrix(s='dot_' + self.name, size=self.size)
+        from geomech.core.operations.calculus import TimeDerivative
+        return TimeDerivative(self)
 
     def t_integrate(self):
         if self.isConstant:
             raise NotImplementedError
-        s = self.name
-        if 'dot_' in s:
-            s = s.replace('dot_', '')
-            return Matrix(s=s, size=self.size)
-        else:
-            return Matrix(s='int_' + s, size=self.size)
+        from geomech.core.operations.calculus import TimeIntegral
+        return TimeIntegral(self)
 
     # support Matrix(s='M') via custom __init__
     def __init__(self, s=None, *, name=None, size=(3, 3), value=None, attr=None):

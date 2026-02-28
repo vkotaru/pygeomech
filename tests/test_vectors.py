@@ -157,7 +157,7 @@ class TestVectorOperations:
     def test_diff_variable(self):
         x = Vector('x')
         dx = x.t_diff()
-        assert str(dx) == 'dot_x'
+        assert str(dx) == '\\frac{d}{dt}(x)'
 
     def test_diff_constant(self):
         e3 = Vector('e3', attr=['Constant'])
@@ -174,7 +174,7 @@ class TestVectorOperations:
     def test_integrate_adds_prefix(self):
         x = Vector('x')
         result = x.t_integrate()
-        assert str(result) == 'int_x'
+        assert str(result) == '\\int{x}dt'
 
 
 class TestZeroVector:

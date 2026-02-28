@@ -116,7 +116,7 @@ class TestMatrixOperations:
     def test_diff_variable(self):
         M = Matrix('M')
         dM = M.t_diff()
-        assert str(dM) == 'dot_M'
+        assert str(dM) == '\\frac{d}{dt}(M)'
 
     def test_diff_constant(self):
         J = Matrix('J', attr=['Constant'])
@@ -135,7 +135,7 @@ class TestMatrixIntegrate:
     def test_integrate_adds_prefix(self):
         M = Matrix('M')
         result = M.t_integrate()
-        assert str(result) == 'int_M'
+        assert str(result) == '\\int{M}dt'
 
 
 class TestSkewSymmMatrix:
