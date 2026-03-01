@@ -20,6 +20,70 @@ The pipeline:
    product rule, expands, integrates by parts, simplifies, and
    extracts the equations
 
+## How it works
+
+Expressions are **symbolic trees**. Python operators (`*`, `+`, etc.) build
+the tree; transformations rewrite it using `match`/`case` pattern matching.
+
+**Node arity:**
+
+| Arity  | Nodes | Example |
+| ------ | ----- | ------- |
+| N-ary  | `Add`, `VAdd`, `MAdd` | `a + b + c` → one node, three children |
+| Binary | `Mul`, `Dot`, `Cross`, `SVMul`, `MVMul`, ... | `Dot(x, y)` → two children |
+| Unary  | `Hat`, `Vee`, `Transpose`, `TimeDerivative`, `Variation` | `Hat(x)` → one child |
+
+**Sample trees:**
+
+`M * (x + y + Cross(m, n))` -- matrix-vector multiply with N-ary addition:
+
+```
+          MVMul                   ← Binary (matrix × vector → vector)
+          ╱   ╲
+         M    VAdd                ← N-ary (3 children)
+            ╱  |  ╲
+           x   y  Cross           ← Binary (vector × vector)
+                  ╱   ╲
+                 m     n
+```
+
+`KE = m * Dot(ẋ, ẋ) * 0.5` -- kinetic energy:
+
+```
+              Mul                 ← Binary (scalar × scalar)
+             ╱   ╲
+          Mul     0.5
+         ╱   ╲
+        m    Dot                  ← Binary (vector · vector → scalar)
+            ╱   ╲
+         d/dt   d/dt             ← Unary (time derivative)
+          |      |
+          x      x               ← Vector leaves
+```
+
+**Pattern-matching transformations** -- tree rewrites use Python `match`/`case`:
+
+```python
+def _eliminate(expr):
+    """Remove zeros and apply identities."""
+    match expr:
+        case Dot():                          # binary
+            l, r = _eliminate(expr.left), _eliminate(expr.right)
+            if l.is_zero or r.is_zero:
+                return _ZERO()
+            return Dot(l, r)
+        case Hat():                          # unary
+            inner = _eliminate(expr.expr)
+            if isinstance(inner, Vee):
+                return inner.expr            # Hat(Vee(M)) = M
+            return Hat(inner)
+        case Add(nodes=nodes):               # n-ary
+            return _simplify_add([_eliminate(n) for n in nodes])
+```
+
+The full pipeline (`compute_eom`) applies variation → expand → integrate by parts →
+simplify → extract coefficients, each as a recursive tree rewrite.
+
 ## Installation
 
 Requires Python >= 3.10.
