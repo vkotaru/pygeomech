@@ -15,6 +15,13 @@ dependencies = [
 dev = [
     "pytest",
 ]
+docs = [
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+]
 
 [tool.setuptools.packages.find]
 include = ["geomech*"]
