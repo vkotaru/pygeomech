@@ -3,7 +3,7 @@
 A Python library for symbolic derivation of equations of motion, variation based linearization on smooth manifolds, $$R,R^3,SO(3),S^2,SE(3)$$.
 
 This work implements the methods described in [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and extends the work developed in
-[Kotaru & Sreenath, 2020](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22) and its [Scala implementation](https://github.com/HybridRobotics/dynamics_on_manifolds).
+[Symbolic Computation of Dynamics on Smooth Manifolds](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22) and its [Scala implementation](https://github.com/HybridRobotics/dynamics_on_manifolds).
 
 ## What it does
 
@@ -166,7 +166,7 @@ pytest
 
 ## Citation
 
-If you use geomech in your research, please cite along with corresponding original work, [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and [Kotaru & Sreenath, 2020](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22).
+If you use geomech in your research, please cite this package along with corresponding original work, [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and [Symbolic Computation of Dynamics on Smooth Manifolds](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22).
 
 ```bibtex
 @software{kotaru2026geomech,

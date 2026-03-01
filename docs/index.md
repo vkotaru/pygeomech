@@ -28,7 +28,7 @@ no Euler angles or quaternions required.
 
 ## Citation
 
-If you use geomech in your research, please cite along with corresponding original work, [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and [Kotaru & Sreenath, 2020](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22).
+If you use geomech in your research, please cite this package along with corresponding original work, [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and [Symbolic Computation of Dynamics on Smooth Manifolds](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22).
 
 ```bibtex
 @software{kotaru2026geomech,
