@@ -109,6 +109,11 @@ def extract_from_scalar(expr, vec):
 
 def extract_from_vector(expr, vec):
     """Extract the coefficient of *vec* from a vector expression."""
+    from geomech.core.base.expressions import IdentityMatrix
+    # Base case: expr IS the target vector → coefficient is identity
+    if str(expr) == str(vec):
+        return IdentityMatrix
+
     match expr:
         # --- vector addition: linearity ---
         case VAdd(nodes=nodes):

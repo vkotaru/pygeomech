@@ -1,3 +1,6 @@
+# Folders
+latex/
+
 # Files
 refactor.md
 project_evaluation.md
@@ -8,6 +11,9 @@ project_evaluation.md
 
 # Visual Studio Code
 .vscode/
+
+# Claude
+.claude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

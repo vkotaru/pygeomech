@@ -37,7 +37,10 @@ from geomech.core.math import (
 )
 
 # --- Layer 5: dynamics pipeline ---
-from geomech.dynamics import SystemVariables, compute_eom, separate_variations
+from geomech.dynamics import (
+    SystemVariables, compute_eom, separate_variations,
+    StandardFormEquation, to_standard_form,
+)
 
 # --- Utilities ---
 from geomech.utils import print_eom, print_tree, tree_str, render_eom, eom_to_latex
