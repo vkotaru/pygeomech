@@ -2,8 +2,8 @@
 
 A Python library for symbolic derivation of equations of motion, variation based linearization on smooth manifolds, $$R,R^3,SO(3),S^2,SE(3)$$.
 
-This work builds on the methods described in 
-1. [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) and extends the work developed in
+This work builds on the methods and math described in 
+1. [Global Formulations of Lagrangian and Hamiltonian Dynamics on Manifolds](https://link.springer.com/book/10.1007/978-3-319-56953-6) 
 2. [Symbolic Computation of Dynamics on Smooth Manifolds](https://link.springer.com/chapter/10.1007/978-3-030-43089-4_22) and its [Scala implementation](https://github.com/HybridRobotics/dynamics_on_manifolds).
 
 ## What it does
