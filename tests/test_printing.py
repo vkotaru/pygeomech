@@ -7,25 +7,26 @@ from geomech.core.operations.calculus import Variation, TimeDerivative
 from geomech.utils.printing import tree_str, print_tree, eom_to_latex
 
 
-class TestTreeStr:
+class TestTreeStrTopdown:
+    """Tests for the compact top-down tree style (default)."""
+
     def test_leaf_scalar(self):
         a = Scalar('a')
         result = tree_str(a)
-        assert "Scalar" in result
-        assert "'a'" in result
+        assert 'a' in result
 
     def test_leaf_constant(self):
         m = Scalar('m', attr=['Constant'])
         result = tree_str(m)
-        assert 'is_constant' in result
+        assert 'm*' in result
 
     def test_binary_mul(self):
         a, b = getScalars('a b')
         expr = a * b
         result = tree_str(expr)
         assert 'Mul' in result
-        assert 'L:' in result
-        assert 'R:' in result
+        assert 'a' in result
+        assert 'b' in result
 
     def test_nary_add(self):
         a, b, c = getScalars('a b c')
@@ -46,7 +47,46 @@ class TestTreeStr:
         result = tree_str(expr)
         assert 'Mul' in result
         assert 'Dot' in result
+        assert 'a' in result
+
+    def test_vector_prefix(self):
+        x = Vector('x')
+        result = tree_str(x)
+        assert 'v:x' in result
+
+    def test_numeric_value(self):
+        s = Scalar('0.5', value=0.5)
+        result = tree_str(s)
+        assert '0.5' in result
+
+    def test_time_derivative_shortname(self):
+        x = Vector('x')
+        expr = x.t_diff()
+        result = tree_str(expr)
+        assert 'd/dt' in result
+
+
+class TestTreeStrIndent:
+    """Tests for the verbose indent tree style."""
+
+    def test_leaf_scalar(self):
+        a = Scalar('a')
+        result = tree_str(a, style='indent')
+        assert "Scalar" in result
         assert "'a'" in result
+
+    def test_leaf_constant(self):
+        m = Scalar('m', attr=['Constant'])
+        result = tree_str(m, style='indent')
+        assert 'is_constant' in result
+
+    def test_binary_mul(self):
+        a, b = getScalars('a b')
+        expr = a * b
+        result = tree_str(expr, style='indent')
+        assert 'Mul' in result
+        assert 'L:' in result
+        assert 'R:' in result
 
 
 class TestEomToLatex:

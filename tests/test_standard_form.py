@@ -7,7 +7,7 @@ from geomech import (
     SystemVariables, compute_eom, to_standard_form, StandardFormEquation,
     Variation, TimeDerivative,
     ZeroVector, ZeroMatrix, IdentityMatrix,
-    print_tree,
+    print_tree, tree_str
 )
 
 

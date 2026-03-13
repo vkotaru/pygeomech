@@ -33,22 +33,270 @@ def print_eom(eqns):
 # Tree printer
 # ---------------------------------------------------------------------------
 
-def print_tree(expr, indent=0, label=''):
+def print_tree(expr, indent=0, label='', style='topdown'):
     """Print the expression tree structure for debugging.
 
     Each node shows its class name, type, and key properties.
     Children are indented below their parent.
+
+    Parameters
+    ----------
+    style : str
+        'topdown' (default) — graphical top-down tree with / and \\ branches.
+        'indent' — original indented list format.
     """
-    lines = []
-    _build_tree(expr, lines, indent, label)
-    print('\n'.join(lines))
+    if style == 'topdown':
+        lines, _, _ = _render_topdown(expr)
+        print('\n'.join(lines))
+    else:
+        lines = []
+        _build_tree(expr, lines, indent, label)
+        print('\n'.join(lines))
+    print()
+    print(f'expr: {repr(expr)}')
 
 
-def tree_str(expr, indent=0, label=''):
+def tree_str(expr, indent=0, label='', style='topdown'):
     """Return the expression tree as a string (without printing)."""
+    if style == 'topdown':
+        lines, _, _ = _render_topdown(expr)
+        return '\n'.join(lines)
+    else:
+        lines = []
+        _build_tree(expr, lines, indent, label)
+        return '\n'.join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Human-readable repr
+# ---------------------------------------------------------------------------
+
+def repr_str(expr):
+    """Return a human-readable string for the expression (used by __repr__)."""
+    from geomech.core.operations.addition import Add, VAdd, MAdd
+    from geomech.core.operations.multiplication import Mul, SVMul, SMMul, MVMul, MMMul, VVMul
+    from geomech.core.operations.geometry import Dot, Cross, Hat, Vee, Transpose
+    from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
+
+    nodes = getattr(expr, 'nodes', None)
+
+    # Leaf
+    if nodes is None or len(nodes) == 0:
+        name = getattr(expr, 'name', None)
+        if name is not None:
+            return name
+        value = getattr(expr, 'value', None)
+        if value is not None:
+            return str(value)
+        return '?'
+
+    # N-ary addition
+    if isinstance(expr, (Add, VAdd, MAdd)):
+        parts = []
+        for i, child in enumerate(nodes):
+            s = repr_str(child)
+            if i > 0 and not s.startswith('-'):
+                parts.append(' + ')
+            elif i > 0:
+                parts.append(' ')
+            parts.append(s)
+        return '(' + ''.join(parts) + ')'
+
+    # Binary multiplication — check for negative scalar factor
+    if isinstance(expr, (Mul, SVMul, SMMul, MVMul, MMMul, VVMul)):
+        left = repr_str(expr.left)
+        right = repr_str(expr.right)
+        # Detect multiplying by -1
+        lval = getattr(expr.left, 'value', None)
+        rval = getattr(expr.right, 'value', None)
+        if isinstance(lval, (int, float)) and lval == -1:
+            return f'-{right}'
+        if isinstance(rval, (int, float)) and rval == -1:
+            return f'-{left}'
+        return f'{left}*{right}'
+
+    # Dot, Cross
+    if isinstance(expr, Dot):
+        return f'<{repr_str(expr.left)}, {repr_str(expr.right)}>'
+    if isinstance(expr, Cross):
+        return f'cross({repr_str(expr.left)}, {repr_str(expr.right)})'
+
+    # Hat, Vee, Transpose
+    if isinstance(expr, Hat):
+        return f'hat({repr_str(expr.expr)})'
+    if isinstance(expr, Vee):
+        return f'vee({repr_str(expr.expr)})'
+    if isinstance(expr, Transpose):
+        return f"{repr_str(expr.expr)}'"
+
+    # Calculus
+    if isinstance(expr, Variation):
+        return f'δ({repr_str(expr.expr)})'
+    if isinstance(expr, TimeDerivative):
+        inner = repr_str(expr.expr)
+        # For simple names, put combining dot above: x → ẋ
+        if inner.isalnum() and len(inner) <= 10:
+            return inner + '\u0307'
+        return f'd/dt({inner})'
+    if isinstance(expr, TimeIntegral):
+        return f'∫({repr_str(expr.expr)})dt'
+
+    # Fallback
+    return str(expr)
+
+
+_SHORT_NAMES = {
+    'TimeDerivative': 'd/dt',
+    'TimeIntegral': '∫dt',
+    'Variation': 'δ',
+    'SVMul': 'S*V',
+    'SMMul': 'S*M',
+    'MVMul': 'M*V',
+    'MMMul': 'M*M',
+    'VVMul': 'V*V',
+}
+
+
+def _node_label(expr, compact=False):
+    """Get the display label for a node."""
+    cls_name = type(expr).__name__
+    nodes = getattr(expr, 'nodes', None)
+    if nodes is None or len(nodes) == 0:
+        if compact:
+            return _compact_leaf(expr)
+        detail = _leaf_detail(expr)
+        return f'{cls_name}({detail})'
+    if compact:
+        return _SHORT_NAMES.get(cls_name, cls_name)
+    return cls_name
+
+
+def _compact_leaf(expr):
+    """Short leaf label: just name/value + type prefix + flag markers."""
+    cls_name = type(expr).__name__
+    name = getattr(expr, 'name', None)
+    value = getattr(expr, 'value', None)
+    flags = getattr(expr, 'flags', None)
+
+    # Type prefix
+    prefix = ''
+    if cls_name in ('Vector', 'TS2', 'TSO3'):
+        prefix = 'v:'
+    elif cls_name in ('Matrix', 'SkewSymmMatrix'):
+        prefix = 'M:'
+    elif cls_name in ('S2',):
+        prefix = 'S2:'
+    elif cls_name in ('SO3',):
+        prefix = 'SO3:'
+    # Scalars get no prefix
+
+    # Display name
+    display = name if name is not None else str(value) if value is not None else '?'
+
+    # Flag suffix: * = constant, numeric values shown inline
+    suffix = ''
+    if flags:
+        is_const = getattr(flags, 'is_constant', False)
+        is_num = getattr(flags, 'is_numeric', False)
+        if is_num and value is not None:
+            # Pure numeric: just show the value
+            display = str(value)
+            if is_const:
+                suffix = '*'
+        elif is_const:
+            suffix = '*'
+
+    return prefix + display + suffix
+
+
+def _render_topdown(expr, gap=3):
+    """Render expression as top-down tree with / and \\ branches.
+
+    Returns (lines, root_col, width) where lines is a list of strings,
+    root_col is the column of the root node center, and width is the
+    total width of the rendered block.
+    """
+    label = _node_label(expr, compact=True)
+    nodes = getattr(expr, 'nodes', None)
+
+    # Leaf
+    if nodes is None or len(nodes) == 0:
+        return [label], len(label) // 2, len(label)
+
+    # Render children
+    children = [_render_topdown(child, gap) for child in nodes]
+
+    # Unary node — pipe connector
+    if len(children) == 1:
+        c_lines, c_root, c_width = children[0]
+        label_start = max(0, c_root - len(label) // 2)
+        width = max(c_width, label_start + len(label))
+        lines = []
+        lines.append(' ' * label_start + label)
+        lines.append(' ' * c_root + '|')
+        for line in c_lines:
+            lines.append(line.ljust(width))
+        return lines, label_start + len(label) // 2, width
+
+    # Multiple children — place side by side with gap
+    child_blocks = []
+    total_width = 0
+    for i, (c_lines, c_root, c_width) in enumerate(children):
+        if i > 0:
+            total_width += gap
+        child_blocks.append((c_lines, c_root, c_width, total_width))
+        total_width += c_width
+
+    first_root = child_blocks[0][3] + child_blocks[0][1]
+    last_root = child_blocks[-1][3] + child_blocks[-1][1]
+    center = (first_root + last_root) // 2
+    label_start = center - len(label) // 2
+
+    # Shift everything right if label goes negative
+    if label_start < 0:
+        shift = -label_start
+        label_start = 0
+        child_blocks = [(cl, cr, cw, co + shift) for cl, cr, cw, co in child_blocks]
+        total_width += shift
+        first_root += shift
+        last_root += shift
+
+    width = max(total_width, label_start + len(label))
+    parent_root = label_start + len(label) // 2
+
     lines = []
-    _build_tree(expr, lines, indent, label)
-    return '\n'.join(lines)
+    # Parent label
+    lines.append(' ' * label_start + label)
+
+    # Draw branch lines from parent down to each child
+    # For 2 children, draw diagonal lines; for N, single connector row
+    child_roots = [co + cr for (_, cr, _, co) in child_blocks]
+
+    # Single connector row with / | \ pointing to each child
+    connector = [' '] * width
+    for cr in child_roots:
+        if cr < parent_root:
+            connector[cr] = '/'
+        elif cr > parent_root:
+            connector[cr] = '\\'
+        else:
+            connector[cr] = '|'
+    lines.append(''.join(connector).rstrip())
+
+    # Merge child lines row by row
+    max_child_lines = max(len(cb[0]) for cb in child_blocks)
+    for row in range(max_child_lines):
+        line = [' '] * width
+        for c_lines_list, c_root, c_width, c_offset in child_blocks:
+            if row < len(c_lines_list):
+                text = c_lines_list[row]
+                for j, ch in enumerate(text):
+                    pos = c_offset + j
+                    if pos < width and ch != ' ':
+                        line[pos] = ch
+        lines.append(''.join(line).rstrip())
+
+    return lines, parent_root, width
 
 
 def _build_tree(expr, lines, indent, label):

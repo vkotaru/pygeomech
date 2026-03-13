@@ -46,7 +46,7 @@ def _check_mul_sizes(op_name: str, l, r):
 # Scalar * Scalar
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Mul(_BinaryMixin, ScalarExpr):
     """Scalar multiplication."""
     nodes: list = field(default_factory=list)
@@ -66,7 +66,7 @@ class Mul(_BinaryMixin, ScalarExpr):
 # Scalar * Vector
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class SVMul(_BinaryMixin, VectorExpr):
     """Scalar-Vector multiplication.  Normalized: left=vector, right=scalar."""
     nodes: list = field(default_factory=list)
@@ -88,7 +88,7 @@ class SVMul(_BinaryMixin, VectorExpr):
 # Scalar * Matrix
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class SMMul(_BinaryMixin, MatrixExpr):
     """Scalar-Matrix multiplication.  Normalized: left=matrix, right=scalar."""
     nodes: list = field(default_factory=list)
@@ -110,7 +110,7 @@ class SMMul(_BinaryMixin, MatrixExpr):
 # Matrix * Vector
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class MVMul(_BinaryMixin, VectorExpr):
     """Matrix-Vector multiplication."""
     nodes: list = field(default_factory=list)
@@ -137,7 +137,7 @@ class MVMul(_BinaryMixin, VectorExpr):
 # Matrix * Matrix
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class MMMul(_BinaryMixin, MatrixExpr):
     """Matrix-Matrix multiplication."""
     nodes: list = field(default_factory=list)
@@ -157,7 +157,7 @@ class MMMul(_BinaryMixin, MatrixExpr):
 # Vector * Vector
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class VVMul(_BinaryMixin, Expr):
     """Vector-Vector multiplication.
     Result type depends on Transpose:

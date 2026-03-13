@@ -15,7 +15,7 @@ from geomech.utils.errors import ExpressionMismatchError, SizeMismatchError
 # Dot  (scalar result from two vectors)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Dot(_BinaryMixin, ScalarExpr):
     """Dot product of two vectors → scalar."""
     nodes: list = field(default_factory=list)
@@ -38,7 +38,7 @@ class Dot(_BinaryMixin, ScalarExpr):
 # Cross  (vector result from two vectors)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Cross(_BinaryMixin, VectorExpr):
     """Cross product of two 3-vectors → vector."""
     nodes: list = field(default_factory=list)
@@ -61,7 +61,7 @@ class Cross(_BinaryMixin, VectorExpr):
 # Hat  (vector → skew-symmetric matrix)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Hat(_UnaryMixin, MatrixExpr):
     """Hat map: R^3 → so(3)."""
     nodes: list = field(default_factory=list)
@@ -80,7 +80,7 @@ class Hat(_UnaryMixin, MatrixExpr):
 # Vee  (skew-symmetric matrix → vector)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Vee(_UnaryMixin, VectorExpr):
     """Vee map: so(3) → R^3."""
     nodes: list = field(default_factory=list)
@@ -99,7 +99,7 @@ class Vee(_UnaryMixin, VectorExpr):
 # Transpose  (type-preserving unary)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Transpose(_BaseMixin, Expr):
     """Transpose operator.  Preserves the type of its inner expression."""
     nodes: list = field(default_factory=list)

@@ -13,7 +13,7 @@ from geomech.utils.errors import ExpressionMismatchError, UndefinedCaseError
 # Base
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Expr:
     """Base expression node."""
 
@@ -25,6 +25,10 @@ class Expr:
 
     def __str__(self):
         raise NotImplementedError
+
+    def __repr__(self):
+        from geomech.utils.printing import repr_str
+        return repr_str(self)
 
     def delta(self):
         from geomech.core.operations.calculus import Variation
@@ -86,7 +90,7 @@ class Expr:
 # Scalar
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class ScalarExpr(Expr):
     """Base for scalar-typed expressions."""
 
@@ -127,7 +131,7 @@ class ScalarExpr(Expr):
             raise UndefinedCaseError
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Scalar(ScalarExpr):
     name: str = None
     value: Any = None
@@ -174,7 +178,7 @@ class Scalar(ScalarExpr):
 # Vector
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class VectorExpr(Expr):
     """Base for vector-typed expressions."""
 
@@ -223,7 +227,7 @@ class VectorExpr(Expr):
         return Transpose(self)
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Vector(VectorExpr):
     name: str = None
     size: tuple = (3,)
@@ -341,7 +345,7 @@ class S2(Vector):
 # Matrix
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class MatrixExpr(Expr):
     """Base for matrix-typed expressions."""
 
@@ -380,7 +384,7 @@ class MatrixExpr(Expr):
             raise UndefinedCaseError
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Matrix(MatrixExpr):
     name: str = None
     size: tuple = (3, 3)

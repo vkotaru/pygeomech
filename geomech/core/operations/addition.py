@@ -55,7 +55,7 @@ def _flatten_nodes(args, expected_type: type, expr_type: ExprType) -> list:
 # N-ary addition
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Add(_NaryMixin, ScalarExpr):
     """Scalar addition (n-ary)."""
     nodes: list = field(default_factory=list)
@@ -64,7 +64,7 @@ class Add(_NaryMixin, ScalarExpr):
         self.nodes = _flatten_nodes(args, Add, ExprType.SCALAR)
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class VAdd(_NaryMixin, VectorExpr):
     """Vector addition (n-ary)."""
     nodes: list = field(default_factory=list)
@@ -73,7 +73,7 @@ class VAdd(_NaryMixin, VectorExpr):
         self.nodes = _flatten_nodes(args, VAdd, ExprType.VECTOR)
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class MAdd(_NaryMixin, MatrixExpr):
     """Matrix addition (n-ary)."""
     nodes: list = field(default_factory=list)

@@ -10,7 +10,7 @@ from geomech.core.operations.mixins import _CalcUnaryMixin
 # Variation  (δ operator as a tree node)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class Variation(_CalcUnaryMixin, Expr):
     """Variation operator δ{expr}.  Preserves the type of its inner expression."""
     nodes: list = field(default_factory=list)
@@ -35,7 +35,7 @@ class Variation(_CalcUnaryMixin, Expr):
 # TimeDerivative  (d/dt operator as a tree node)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class TimeDerivative(_CalcUnaryMixin, Expr):
     """Time derivative d/dt{expr}.  Preserves the type of its inner expression."""
     nodes: list = field(default_factory=list)
@@ -55,7 +55,7 @@ class TimeDerivative(_CalcUnaryMixin, Expr):
 # TimeIntegral  (∫ dt operator as a tree node)
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, repr=False)
 class TimeIntegral(_CalcUnaryMixin, Expr):
     """Time integral ∫{expr}dt.  Preserves the type of its inner expression."""
     nodes: list = field(default_factory=list)
