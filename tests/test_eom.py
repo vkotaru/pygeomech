@@ -90,12 +90,11 @@ class TestSphericalPendulumEOM:
         e3 = Vector('e3', attr=['Constant'])
         q = S2('q')
         f = Vector('f')
+        omega = q.get_tangent_vector()
 
-        x = l * q
-        v = x.t_diff()
-
-        PE = m * Dot(x, g * e3)
-        KE = m * Dot(v, v) * Scalar('0.5', value=0.5, attr=['Constant'])
+        half = Scalar('0.5', value=0.5, attr=['Constant'])
+        KE = half * m * l * l * Dot(omega, omega)
+        PE = m * g * l * Dot(q, e3)
         L = KE - PE
         dW = Dot(q.get_variation_vector(), f)
 

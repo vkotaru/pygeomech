@@ -20,6 +20,7 @@ from geomech.core.operations.multiplication import (
     Mul, SVMul, SMMul, MVMul, MMMul, VVMul,
 )
 from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
+from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +169,14 @@ def extract_from_vector(expr, vec):
             if s.has(vec):
                 raise NotImplementedError("extract_from_vector: SVMul scalar contains vec")
             return ZeroMatrix
+
+        # --- unary ops (TimeDerivative, etc.) ---
+        case TimeDerivative() | TimeIntegral() | Variation():
+            if not expr.has(vec):
+                return ZeroMatrix
+            raise NotImplementedError(
+                f"extract_from_vector: {type(expr).__name__} containing target vec"
+            )
 
         # --- leaf / unhandled ---
         case _:

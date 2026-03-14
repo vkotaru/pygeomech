@@ -147,15 +147,15 @@ class Scalar(ScalarExpr):
         return self.name
 
     def delta(self):
-        if self.is_constant:
-            return Scalar('0', value=0)
+        if self.is_constant or self.is_numeric:
+            return Zero
         else:
             from geomech.core.operations import Variation
             return Variation(self)
 
     def t_diff(self):
-        if self.is_constant:
-            return Scalar(s='0', value=0, attr=['Constant', 'Zero'])
+        if self.is_constant or self.is_numeric:
+            return Zero
         from geomech.core.operations.calculus import TimeDerivative
         return TimeDerivative(self)
 
@@ -334,7 +334,7 @@ class S2(Vector):
         return TS2(self.manifold_info.tangent_vector_name, S2=self)
 
     def get_variation_vector(self):
-        return Vector(self.manifold_info.variation_vector_name)
+        return TS2(self.manifold_info.variation_vector_name, S2=self)
 
     def t_diff(self):
         from geomech.core.operations import Cross

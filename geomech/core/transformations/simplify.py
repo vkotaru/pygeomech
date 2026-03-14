@@ -222,7 +222,7 @@ def _zero_for(expr):
 # ---------------------------------------------------------------------------
 
 def _simplify_add(nodes):
-    """Scalar addition: filter zeros, combine numerics, unwrap single."""
+    """Scalar addition: filter zeros, combine numerics, collect like terms."""
     numeric_total = 0
     kept = []
     for n in nodes:
@@ -235,6 +235,7 @@ def _simplify_add(nodes):
     if numeric_total != 0:
         kept.append(Scalar('(' + str(numeric_total) + ')',
                            value=numeric_total, attr=['Constant']))
+    kept = _collect_like_terms(kept, ExprType.SCALAR)
     if len(kept) == 0:
         return Zero
     if len(kept) == 1:
@@ -243,8 +244,9 @@ def _simplify_add(nodes):
 
 
 def _simplify_vadd(nodes):
-    """Vector addition: filter zeros, unwrap single."""
+    """Vector addition: filter zeros, collect like terms."""
     kept = [n for n in nodes if not _is_zero(n)]
+    kept = _collect_like_terms(kept, ExprType.VECTOR)
     if len(kept) == 0:
         return ZeroVector
     if len(kept) == 1:
@@ -253,13 +255,135 @@ def _simplify_vadd(nodes):
 
 
 def _simplify_madd(nodes):
-    """Matrix addition: filter zeros, unwrap single."""
+    """Matrix addition: filter zeros, collect like terms."""
     kept = [n for n in nodes if not _is_zero(n)]
+    kept = _collect_like_terms(kept, ExprType.MATRIX)
     if len(kept) == 0:
         return ZeroMatrix
     if len(kept) == 1:
         return kept[0]
     return MAdd(*kept)
+
+
+# ---------------------------------------------------------------------------
+# Like-term collection
+# ---------------------------------------------------------------------------
+
+def _split_coeff(expr):
+    """Split expr into (numeric_coefficient, term).
+
+    For Mul(term, Number) or Mul(Number, term), returns (number, term).
+    For SVMul(vec, Number) or SMMul(mat, Number), returns (number, vec/mat).
+    Otherwise returns (1, expr).
+    """
+    if isinstance(expr, Mul):
+        if _is_numeric_leaf(expr.left):
+            return expr.left.value, expr.right
+        if _is_numeric_leaf(expr.right):
+            return expr.right.value, expr.left
+    if isinstance(expr, SVMul):
+        if _is_numeric_leaf(expr.right):
+            return expr.right.value, expr.left
+    if isinstance(expr, SMMul):
+        if _is_numeric_leaf(expr.right):
+            return expr.right.value, expr.left
+    if _is_numeric_leaf(expr):
+        return expr.value, None
+    return 1, expr
+
+
+def _commutative_equal(a, b):
+    """Structural equality that respects commutativity of Dot and Mul."""
+    if a is b:
+        return True
+    if type(a) is not type(b):
+        return False
+
+    # Commutative binary ops: check both orderings
+    if isinstance(a, Dot):
+        return ((_commutative_equal(a.left, b.left) and _commutative_equal(a.right, b.right)) or
+                (_commutative_equal(a.left, b.right) and _commutative_equal(a.right, b.left)))
+    if isinstance(a, Mul):
+        return ((_commutative_equal(a.left, b.left) and _commutative_equal(a.right, b.right)) or
+                (_commutative_equal(a.left, b.right) and _commutative_equal(a.right, b.left)))
+
+    # Non-commutative binary ops: order matters
+    if isinstance(a, (SVMul, SMMul, MVMul, MMMul, VVMul, Cross)):
+        return (_commutative_equal(a.left, b.left) and _commutative_equal(a.right, b.right))
+
+    # N-ary: same length and all children match in order
+    a_nodes = getattr(a, 'nodes', None)
+    b_nodes = getattr(b, 'nodes', None)
+    if a_nodes is not None and b_nodes is not None:
+        if len(a_nodes) != len(b_nodes):
+            return False
+        return all(_commutative_equal(an, bn) for an, bn in zip(a_nodes, b_nodes))
+
+    # Unary ops
+    a_inner = getattr(a, 'expr', None)
+    b_inner = getattr(b, 'expr', None)
+    if a_inner is not None and b_inner is not None:
+        return _commutative_equal(a_inner, b_inner)
+
+    # Leaves: fall back to string comparison
+    return str(a) == str(b)
+
+
+def _make_term(coeff, term, expr_type):
+    """Reconstruct coeff * term for the given type."""
+    if term is None:
+        # Pure numeric
+        return Scalar('(' + str(coeff) + ')', value=coeff, attr=['Constant'])
+    if coeff == 0:
+        return None
+    if coeff == 1:
+        return term
+    scalar = Scalar('(' + str(coeff) + ')', value=coeff, attr=['Constant'])
+    if expr_type == ExprType.VECTOR:
+        return SVMul(term, scalar)
+    if expr_type == ExprType.MATRIX:
+        return SMMul(term, scalar)
+    return Mul(term, scalar)
+
+
+def _collect_like_terms(nodes, expr_type):
+    """Group terms by commutative equality and sum their coefficients."""
+    if len(nodes) <= 1:
+        return nodes
+
+    # Split each node into (coeff, term)
+    pairs = [_split_coeff(n) for n in nodes]
+
+    # Group by commutative equality
+    merged_coeffs = list(range(len(pairs)))  # index of canonical representative
+    coeffs = [c for c, _ in pairs]
+    terms = [t for _, t in pairs]
+
+    for i in range(len(pairs)):
+        if merged_coeffs[i] != i:
+            continue  # already merged into an earlier group
+        for j in range(i + 1, len(pairs)):
+            if merged_coeffs[j] != j:
+                continue  # already merged
+            ti = terms[i]
+            tj = terms[j]
+            # Both pure numeric (term is None) — already combined in _simplify_add
+            if ti is None and tj is None:
+                continue
+            if ti is not None and tj is not None and _commutative_equal(ti, tj):
+                coeffs[i] += coeffs[j]
+                coeffs[j] = 0
+                merged_coeffs[j] = i
+
+    # Reconstruct
+    result = []
+    for i in range(len(pairs)):
+        if merged_coeffs[i] != i:
+            continue
+        made = _make_term(coeffs[i], terms[i], expr_type)
+        if made is not None:
+            result.append(made)
+    return result
 
 
 def _simplify_mul(l, r):
@@ -275,4 +399,37 @@ def _simplify_mul(l, r):
         combined = l.value * r.value
         return Scalar('(' + str(combined) + ')',
                        value=combined, attr=['Constant'])
-    return Mul(l, r)
+    # Fold numeric constants through nested Muls:
+    # e.g. Mul(-0.5, Mul(m, 2)) → Mul(m, -1.0)
+    result = Mul(l, r)
+    factors = []
+    _flatten_mul(result, factors)
+    numerics = [f for f in factors if _is_numeric_leaf(f)]
+    if len(numerics) >= 2:
+        others = [f for f in factors if not _is_numeric_leaf(f)]
+        combined = 1
+        for n in numerics:
+            combined *= n.value
+        if combined == 0:
+            return Zero
+        if combined != 1:
+            others.append(Scalar('(' + str(combined) + ')',
+                                  value=combined, attr=['Constant']))
+        if len(others) == 0:
+            return Scalar('(' + str(combined) + ')',
+                           value=combined, attr=['Constant'])
+        # Rebuild left-associative chain
+        out = others[0]
+        for o in others[1:]:
+            out = Mul(out, o)
+        return out
+    return result
+
+
+def _flatten_mul(expr, factors):
+    """Flatten nested Mul into a list of factors."""
+    if isinstance(expr, Mul):
+        _flatten_mul(expr.left, factors)
+        _flatten_mul(expr.right, factors)
+    else:
+        factors.append(expr)

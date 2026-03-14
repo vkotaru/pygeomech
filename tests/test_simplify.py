@@ -526,8 +526,118 @@ class TestFullSimplify:
 
 
 # ===================================================================
+# Like-term collection
+# ===================================================================
+
+class TestLikeTermCollection:
+    def test_dot_commutativity_scalar(self):
+        """0.5*Dot(x,y) + 0.5*Dot(y,x) → Dot(x,y)."""
+        x, y = getVectors(['x', 'y'])
+        half = Scalar('0.5', value=0.5)
+        expr = Add(Mul(Dot(x, y), half), Mul(Dot(y, x), half))
+        result = simplify(expr)
+        assert isinstance(result, Dot)
+        assert result == Dot(x, y)
+
+    def test_identical_terms_combine(self):
+        """0.5*a + 0.5*a → a."""
+        a = Scalar('a')
+        half = Scalar('0.5', value=0.5)
+        expr = Add(Mul(a, half), Mul(a, half))
+        result = simplify(expr)
+        assert result == a
+
+    def test_vector_like_terms(self):
+        """0.5*SVMul(x,a) + 0.5*SVMul(x,a) → SVMul(x,a)."""
+        x = Vector('x')
+        a = Scalar('a')
+        half = Scalar('0.5', value=0.5)
+        expr = VAdd(SVMul(x, Mul(a, half)), SVMul(x, Mul(a, half)))
+        result = full_simplify(expr)
+        assert isinstance(result, SVMul)
+
+    def test_no_false_merge(self):
+        """Dot(x,y) + Dot(x,z) should NOT be merged."""
+        x, y, z = getVectors(['x', 'y', 'z'])
+        half = Scalar('0.5', value=0.5)
+        expr = Add(Mul(Dot(x, y), half), Mul(Dot(x, z), half))
+        result = simplify(expr)
+        assert isinstance(result, Add)
+
+    def test_three_like_terms(self):
+        """a + a + a → 3*a."""
+        a = Scalar('a')
+        one = Scalar('1', value=1, attr=['Constant', 'Ones'])
+        expr = Add(Mul(a, one), Mul(a, one), Mul(a, one))
+        result = simplify(expr)
+        assert isinstance(result, Mul)
+        # Should have coefficient 3
+        factors = []
+        _collect_factors(result, factors)
+        nums = [f.value for f in factors if hasattr(f, 'value') and f.value is not None]
+        assert 3 in nums
+
+    def test_cancellation(self):
+        """a + (-1)*a → Zero."""
+        a = Scalar('a')
+        neg = Scalar('(-1)', value=-1, attr=['Constant'])
+        expr = Add(a, Mul(a, neg))
+        result = simplify(expr)
+        assert _is_zero(result)
+
+    def test_numeric_fold_through_nested_mul(self):
+        """Mul(Mul(-1, 0.5), Mul(m, 2)) → Mul(m, -1)."""
+        neg1 = Scalar('(-1)', value=-1, attr=['Constant'])
+        half = Scalar('0.5', value=0.5)
+        m = Scalar('m', attr=['Constant'])
+        two = Scalar('(2)', value=2, attr=['Constant'])
+        expr = Mul(Mul(neg1, half), Mul(m, two))
+        result = simplify(expr)
+        factors = []
+        _collect_factors(result, factors)
+        nums = [f.value for f in factors if hasattr(f, 'value') and f.value is not None]
+        assert -1.0 in nums or -1 in nums
+
+
+class TestCommutativeEqual:
+    def test_dot_commutes(self):
+        from geomech.core.transformations.simplify import _commutative_equal
+        x, y = getVectors(['x', 'y'])
+        assert _commutative_equal(Dot(x, y), Dot(y, x))
+
+    def test_dot_different(self):
+        from geomech.core.transformations.simplify import _commutative_equal
+        x, y, z = getVectors(['x', 'y', 'z'])
+        assert not _commutative_equal(Dot(x, y), Dot(x, z))
+
+    def test_mul_commutes(self):
+        from geomech.core.transformations.simplify import _commutative_equal
+        a, b = getScalars('a b')
+        assert _commutative_equal(Mul(a, b), Mul(b, a))
+
+    def test_cross_does_not_commute(self):
+        from geomech.core.transformations.simplify import _commutative_equal
+        x, y = getVectors(['x', 'y'])
+        assert not _commutative_equal(Cross(x, y), Cross(y, x))
+
+    def test_nested_commutative(self):
+        from geomech.core.transformations.simplify import _commutative_equal
+        x, y, z = getVectors(['x', 'y', 'z'])
+        # Dot(x, Cross(y,z)) vs Dot(Cross(y,z), x) — Dot commutes
+        assert _commutative_equal(Dot(x, Cross(y, z)), Dot(Cross(y, z), x))
+
+
+# ===================================================================
 # Helpers (used in tests)
 # ===================================================================
 
 def _is_zero(expr) -> bool:
     return getattr(expr, 'is_zero', False)
+
+
+def _collect_factors(expr, factors):
+    if isinstance(expr, Mul):
+        _collect_factors(expr.left, factors)
+        _collect_factors(expr.right, factors)
+    else:
+        factors.append(expr)

@@ -9,11 +9,12 @@ Rules applied:
   - dot(x, cross(y, x)) = 0      orthogonality
   - dot(x, cross(y, y)) = 0      self-cross is zero
   - Same rules when cross is on the left side of dot (commutativity)
+  - dot(ω, q) = 0                tangent vector orthogonal to S2 manifold point
   - Transpose(Transpose(x)) = x  double transpose cancellation
   - Hat(0) = ZeroMatrix           hat of zero vector
   - Linearity through Add and Mul
 """
-from geomech.core.base.expressions import Scalar, ZeroVector, ZeroMatrix
+from geomech.core.base.expressions import Scalar, ZeroVector, ZeroMatrix, TS2, S2
 from geomech.core.operations.addition import Add
 from geomech.core.operations.multiplication import Mul
 from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
@@ -29,6 +30,19 @@ def _is_orthogonal_dot_cross(vec, cross_expr):
     return (vec == cross_expr.left
             or vec == cross_expr.right
             or cross_expr.left == cross_expr.right)
+
+
+def _is_tangent_orthogonal(a, b):
+    """Check if dot(a, b) = 0 due to manifold tangent-point orthogonality.
+
+    On S2: tangent vectors (ω, ξ) are orthogonal to the manifold point q.
+    Returns True when one is a TS2 and the other is its parent S2.
+    """
+    if isinstance(a, TS2) and isinstance(b, S2) and a.S2 is b:
+        return True
+    if isinstance(b, TS2) and isinstance(a, S2) and b.S2 is a:
+        return True
+    return False
 
 
 _ZERO = lambda: Scalar('0', value=0, attr=['Constant', 'Zero'])
@@ -68,6 +82,10 @@ def vector_rules(expr):
                            and expr.right.is_unit_norm
                            and expr.left == expr.right):
                     return _ONE()
+
+                # dot(ω, q) = 0 — tangent vector orthogonal to manifold point
+                case _ if _is_tangent_orthogonal(expr.left, expr.right):
+                    return _ZERO()
 
                 case _:
                     return expr
