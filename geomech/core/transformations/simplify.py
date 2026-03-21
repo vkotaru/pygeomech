@@ -96,6 +96,12 @@ def _eliminate(expr):
                 return ZeroVector
             if _is_identity(mat):
                 return vec
+            # Hat(v) * w = Cross(v, w)
+            if isinstance(mat, Hat):
+                return Cross(mat.expr, vec)
+            # (A * B) * v → A * (B * v)  (matrix associativity)
+            if isinstance(mat, MMMul):
+                return _eliminate(MVMul(mat.left, MVMul(mat.right, vec)))
             return MVMul(mat, vec)
 
         # ---- matrix * matrix ----
@@ -150,6 +156,15 @@ def _eliminate(expr):
             inner = _eliminate(expr.expr)
             if isinstance(inner, Transpose):
                 return inner.expr
+            # Hat is skew-symmetric: Hat(v)^T = -Hat(v)
+            if isinstance(inner, Hat):
+                return SMMul(inner, Scalar('(-1)', value=-1, attr=['Constant']))
+            # (s*M)^T = s*M^T
+            if isinstance(inner, SMMul):
+                return SMMul(_eliminate(Transpose(inner.left)), inner.right)
+            # (A*B)^T = B^T * A^T
+            if isinstance(inner, MMMul):
+                return _eliminate(MMMul(Transpose(inner.right), Transpose(inner.left)))
             return Transpose(inner)
 
         # ---- calculus ops ----

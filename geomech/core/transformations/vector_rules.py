@@ -10,13 +10,14 @@ Rules applied:
   - dot(x, cross(y, y)) = 0      self-cross is zero
   - Same rules when cross is on the left side of dot (commutativity)
   - dot(ω, q) = 0                tangent vector orthogonal to S2 manifold point
+  - cross(q, cross(ω, q)) = ω    S2 tangent recovery (unit norm + orthogonality)
   - Transpose(Transpose(x)) = x  double transpose cancellation
   - Hat(0) = ZeroMatrix           hat of zero vector
   - Linearity through Add and Mul
 """
 from geomech.core.base.expressions import Scalar, ZeroVector, ZeroMatrix, TS2, S2
-from geomech.core.operations.addition import Add
-from geomech.core.operations.multiplication import Mul
+from geomech.core.operations.addition import Add, VAdd
+from geomech.core.operations.multiplication import Mul, SVMul
 from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
 
 
@@ -45,18 +46,106 @@ def _is_tangent_orthogonal(a, b):
     return False
 
 
+def _try_s2_cross_reduction(expr):
+    """Try to simplify Cross expressions using S2 tangent space identities.
+
+    BAC-CAB: q × (a × q) = a*(q·q) - q*(q·a)
+    When q is unit norm (S2) and a is in the tangent space (TS2 with parent q):
+      q × (a × q) = a
+
+    Also handles the flipped form:
+      cross(cross(a, q), q) = -cross(q, cross(a, q)) ... but
+      cross(cross(q, a), q) = a  (by anti-commutativity of inner cross)
+    """
+    l, r = expr.left, expr.right
+
+    # Pattern: Cross(q, Cross(a, q)) where q is S2, a is tangent to q
+    if (isinstance(l, S2) and isinstance(r, Cross)
+            and r.right == l):
+        a = r.left
+        if _is_tangent_to_s2(a, l):
+            return a
+
+    # Pattern: Cross(q, Cross(q, a)) = -a (when a is tangent)
+    # q × (q × a) = q*(q·a) - a*(q·q) = -a  (since q·a=0 and q·q=1)
+    if (isinstance(l, S2) and isinstance(r, Cross)
+            and r.left == l):
+        a = r.right
+        if _is_tangent_to_s2(a, l):
+            return SVMul(a, Scalar('(-1)', value=-1, attr=['Constant']))
+
+    # Pattern: Cross(Cross(q, a), q) = a (when a is tangent)
+    # (q × a) × q = q*(a·q) - a*(q·q) ... no, BAC-CAB is a×(b×c)
+    # Actually: (q×a) × q = -q × (q×a) = -(q*(q·a) - a*(q·q)) = a
+    if (isinstance(l, Cross) and isinstance(r, S2)
+            and l.left == r):
+        a = l.right
+        if _is_tangent_to_s2(a, r):
+            return a
+
+    # Pattern: Cross(Cross(a, q), q) = -a (when a is tangent)
+    # (a×q) × q = -q × (a×q) = -(a*(q·q) - q*(q·a)) = -a
+    if (isinstance(l, Cross) and isinstance(r, S2)
+            and l.right == r):
+        a = l.left
+        if _is_tangent_to_s2(a, r):
+            return SVMul(a, Scalar('(-1)', value=-1, attr=['Constant']))
+
+    # Pattern: Cross(a, Cross(a, q)) = -q*(a·a) when a is tangent to q
+    # a × (a × q) = a*(a·q) - q*(a·a) = -q*(a·a) since a⊥q
+    # This produces SVMul(q, -Dot(a,a)) = scalar * q
+    if (isinstance(r, Cross) and r.right is not None
+            and isinstance(r.right, S2) and l == r.left):
+        q = r.right
+        a = l
+        if _is_tangent_to_s2(a, q):
+            neg_one = Scalar('(-1)', value=-1, attr=['Constant'])
+            return SVMul(q, Mul(Dot(a, a), neg_one))
+
+    return None
+
+
+def _is_tangent_to_s2(expr, s2):
+    """Check if expr is a tangent vector to the given S2 manifold.
+
+    Returns True for TS2 vectors whose parent is the given S2,
+    or for TimeDerivative/Variation of such vectors.
+    """
+    from geomech.core.operations.calculus import TimeDerivative, Variation
+    # Direct TS2
+    if isinstance(expr, TS2) and expr.S2 is s2:
+        return True
+    # TimeDerivative(TS2) — angular acceleration stays in tangent space
+    if isinstance(expr, TimeDerivative):
+        return _is_tangent_to_s2(expr.expr, s2)
+    # Variation(TS2)
+    if isinstance(expr, Variation):
+        return _is_tangent_to_s2(expr.expr, s2)
+    # Cross(a, q) is tangent to q (perpendicular to q by definition)
+    if isinstance(expr, Cross):
+        if expr.right == s2 or expr.left == s2:
+            return True
+    return False
+
+
 _ZERO = lambda: Scalar('0', value=0, attr=['Constant', 'Zero'])
 _ONE = lambda: Scalar('1', value=1, attr=['Constant', 'Ones'])
 
 
 def vector_rules(expr):
     match expr:
-        # --- Linearity through scalar ops ---
+        # --- Linearity through scalar and vector ops ---
         case Add(nodes=nodes):
             return Add(*[vector_rules(n) for n in nodes])
 
         case Mul():
             return Mul(vector_rules(expr.left), vector_rules(expr.right))
+
+        case VAdd(nodes=nodes):
+            return VAdd(*[vector_rules(n) for n in nodes])
+
+        case SVMul():
+            return SVMul(vector_rules(expr.left), vector_rules(expr.right))
 
         # --- Dot product rules ---
         case Dot():
@@ -96,6 +185,16 @@ def vector_rules(expr):
 
         case Cross() if expr.left.is_zero or expr.right.is_zero:
             return ZeroVector
+
+        # S2 tangent recovery: cross(q, cross(a, q)) = a  when q unit norm, a ⊥ q
+        # This is the BAC-CAB identity: q × (a × q) = a(q·q) - q(q·a) = a when ||q||=1 and a⊥q
+        # First recurse into children so inner reductions fire before outer
+        case Cross():
+            expr = Cross(vector_rules(expr.left), vector_rules(expr.right))
+            reduced = _try_s2_cross_reduction(expr)
+            if reduced is not None:
+                return reduced
+            return expr
 
         # --- Transpose rules ---
         case Transpose() if isinstance(expr.expr, Transpose):

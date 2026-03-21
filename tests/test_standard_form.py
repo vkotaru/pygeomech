@@ -157,13 +157,11 @@ class TestPointMassStandardForm:
 # ---------------------------------------------------------------------------
 
 class TestSphericalPendulumStandardForm:
-    @pytest.mark.skip(reason="standard_form extraction needs TimeDerivative support for S2")
     def test_returns_one_equation(self):
         eom, variables, inputs, q = _spherical_pendulum_eom()
         sf = to_standard_form(eom, variables, inputs)
         assert len(sf) == 1
 
-    @pytest.mark.skip(reason="standard_form extraction needs TimeDerivative support for S2")
     def test_M_has_acceleration(self):
         """M should contain d/dt(omega) terms now that manifold kinematic
         substitution is implemented."""
@@ -173,7 +171,6 @@ class TestSphericalPendulumStandardForm:
         eq = sf[key]
         assert len(eq.M) > 0
 
-    @pytest.mark.skip(reason="standard_form extraction needs TimeDerivative support for S2")
     def test_G_has_input(self):
         eom, variables, inputs, q = _spherical_pendulum_eom()
         sf = to_standard_form(eom, variables, inputs)
@@ -181,7 +178,6 @@ class TestSphericalPendulumStandardForm:
         eq = sf[key]
         assert len(eq.G) > 0, 'G should have the input force'
 
-    @pytest.mark.skip(reason="standard_form extraction needs TimeDerivative support for S2")
     def test_f_has_gravity(self):
         eom, variables, inputs, q = _spherical_pendulum_eom()
         sf = to_standard_form(eom, variables, inputs)
@@ -200,17 +196,18 @@ class TestRigidPendulumStandardForm:
         sf = to_standard_form(eom, variables, inputs)
         assert len(sf) == 1
 
-    def test_M_empty_without_kinematic_substitution(self):
-        """M is empty because the current pipeline does not substitute
-        manifold kinematics (delta(Omega) = eta_dot + Omega x eta).
-        Once kinematic substitution is implemented, this test should
-        be updated to check for J * d/dt(Omega) in M."""
+    def test_M_has_acceleration(self):
+        """M should contain d/dt(Omega) terms now that manifold kinematic
+        substitution is implemented."""
         eom, variables, inputs, R = _rigid_pendulum_eom()
         sf = to_standard_form(eom, variables, inputs)
         key = list(sf.keys())[0]
         eq = sf[key]
-        # TODO: update when manifold kinematic substitution is added
-        assert len(eq.M) == 0
+        Om = R.get_tangent_vector()
+        ddOm = str(TimeDerivative(Om))
+        assert ddOm in eq.M, f'M should contain d/dt(Omega), got keys: {list(eq.M.keys())}'
+        # M should contain inertia terms (J)
+        assert 'J' in str(eq.M[ddOm])
 
     def test_G_has_torque(self):
         eom, variables, inputs, R = _rigid_pendulum_eom()

@@ -2,16 +2,21 @@
 
 For S2 (unit sphere) with manifold point q, tangent vector ω, variation vector ξ:
   - Variation(ω) → ξ̇ - ω × ξ        (derived from δ/d/dt commutativity)
-  - Variation(ξ) → left as Variation(ξ)  (handled later by IBP + extraction)
+
+For SO3 (rotation group) with tangent vector Ω, variation vector η:
+  - Variation(Ω) → η̇ + Ω × η        (body-frame angular velocity convention)
 
 The expansion of δ(ω) follows from the commutativity of δ and d/dt on the
 action integral.  Starting from q̇ = ω × q and δq = ξ × q, setting
 δ(q̇) = d/dt(δq) and solving for δ(ω) gives  δ(ω) = ξ̇ - ω × ξ.
+
+Similarly, for SO3 with Ṙ = R·Hat(Ω) and δR = R·Hat(η), commutativity
+of δ and d/dt gives  δ(Ω) = η̇ + Ω × η.
 """
 
 from __future__ import annotations
 
-from geomech.core.base.expressions import S2, TS2, Scalar
+from geomech.core.base.expressions import S2, SO3, TS2, TSO3, Scalar
 from geomech.core.operations.addition import VAdd
 from geomech.core.operations.multiplication import SVMul
 from geomech.core.operations.geometry import Cross
@@ -26,38 +31,53 @@ _NEG1 = Scalar('(-1)', value=-1, attr=['Constant'])
 def apply_manifold_rules(expr, variables: SystemVariables):
     """Apply manifold kinematic substitutions to an expression.
 
-    Walks the expression tree and replaces Variation(TS2) nodes with
-    their kinematic expansions.
+    Walks the expression tree and replaces Variation(TS2) and
+    Variation(TSO3) nodes with their kinematic expansions.
     """
-    # Build lookup: tangent vector name → (S2 parent, omega, xi)
-    s2_map = {}
+    tangent_map = {}
+
+    # S2 manifolds (vectors)
     for vec in variables.vectors:
         if isinstance(vec, S2):
             omega = vec.get_tangent_vector()
             xi = vec.get_variation_vector()
-            s2_map[str(omega)] = (vec, omega, xi)
+            tangent_map[str(omega)] = ('S2', vec, omega, xi)
 
-    if not s2_map:
+    # SO3 manifolds (matrices)
+    for mat in variables.matrices:
+        if isinstance(mat, SO3):
+            Omega = mat.get_tangent_vector()
+            eta = mat.get_variation_vector()
+            tangent_map[str(Omega)] = ('SO3', mat, Omega, eta)
+
+    if not tangent_map:
         return expr
 
-    return _substitute(expr, s2_map)
+    return _substitute(expr, tangent_map)
 
 
-def _substitute(expr, s2_map):
+def _substitute(expr, tangent_map):
     """Recursively substitute manifold variations."""
 
-    # Variation(TS2) → kinematic expansion
+    # Variation(TS2) or Variation(TSO3) → kinematic expansion
     if isinstance(expr, Variation):
         inner = expr.expr
-        if isinstance(inner, TS2) and str(inner) in s2_map:
-            q, omega, xi = s2_map[str(inner)]
-            # δ(ω) = ξ̇ - ω × ξ
-            return VAdd(
-                TimeDerivative(xi),
-                SVMul(Cross(omega, xi), _NEG1),
-            )
+        if isinstance(inner, (TS2, TSO3)) and str(inner) in tangent_map:
+            kind, parent, omega, var_vec = tangent_map[str(inner)]
+            if kind == 'S2':
+                # δ(ω) = ξ̇ - ω × ξ
+                return VAdd(
+                    TimeDerivative(var_vec),
+                    SVMul(Cross(omega, var_vec), _NEG1),
+                )
+            else:
+                # δ(Ω) = η̇ + Ω × η
+                return VAdd(
+                    TimeDerivative(var_vec),
+                    Cross(omega, var_vec),
+                )
         # Variation of non-tangent or unknown — recurse into inner
-        inner_sub = _substitute(inner, s2_map)
+        inner_sub = _substitute(inner, tangent_map)
         if inner_sub is not inner:
             return Variation(inner_sub)
         return expr
@@ -67,7 +87,7 @@ def _substitute(expr, s2_map):
     if nodes is None or len(nodes) == 0:
         return expr
 
-    new_nodes = [_substitute(n, s2_map) for n in nodes]
+    new_nodes = [_substitute(n, tangent_map) for n in nodes]
     if all(n is o for n, o in zip(new_nodes, nodes)):
         return expr  # nothing changed
 

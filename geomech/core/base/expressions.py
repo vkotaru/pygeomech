@@ -287,10 +287,11 @@ class TSO3(Vector):
         self.attr.append('TangentVector')
 
     def delta(self, substitute=False):
-        from geomech.core.operations import Hat, Variation
+        from geomech.core.operations import Cross, Variation
         if substitute:
             eta = self.SO3.get_variation_vector()
-            return Hat(self) * eta + eta.t_diff()
+            # δ(Ω) = η̇ + Ω × η
+            return eta.t_diff() + Cross(self, eta)
         else:
             return Variation(self)
 
@@ -306,9 +307,11 @@ class TS2(Vector):
         self.attr.append('TangentVector')
 
     def delta(self, substitute=False):
-        from geomech.core.operations import Variation
+        from geomech.core.operations import Cross, Variation
         if substitute:
-            raise NotImplementedError
+            xi = self.S2.get_variation_vector()
+            # δ(ω) = ξ̇ - ω × ξ
+            return xi.t_diff() - Cross(self, xi)
         else:
             return Variation(self)
 
@@ -457,7 +460,7 @@ class SO3(Matrix):
         return TSO3(self.manifold_info.tangent_vector_name, SO3=self)
 
     def get_variation_vector(self):
-        return Vector(self.manifold_info.variation_vector_name)
+        return TSO3(self.manifold_info.variation_vector_name, SO3=self)
 
     def t_diff(self):
         from geomech.core.operations import MMMul, Hat

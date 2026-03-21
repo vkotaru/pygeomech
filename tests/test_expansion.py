@@ -126,4 +126,5 @@ class TestExpandMatrix:
         x, y = getVectors(['x', 'y'])
         expr = Hat(x + y)
         expanded = expand(expr)
-        assert isinstance(expanded, Hat)
+        # Hat is linear: Hat(x+y) = Hat(x) + Hat(y)
+        assert isinstance(expanded, MAdd)

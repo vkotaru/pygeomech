@@ -344,11 +344,12 @@ class TestUnaryRecurse:
         assert isinstance(result, Vee)
 
     def test_hat_with_nested_expansion(self):
-        """Hat wraps the expanded child — Hat itself does not distribute."""
+        """Hat distributes over VAdd: Hat(x+y) → MAdd(Hat(x), Hat(y))."""
         x, y = getVectors(['x', 'y'])
-        # Hat(VAdd(x,y)) stays as Hat(VAdd(x,y)) — Hat doesn't distribute
         result = expand(Hat(VAdd(x, y)))
-        assert isinstance(result, Hat)
+        assert isinstance(result, MAdd)
+        assert len(result.nodes) == 2
+        assert all(isinstance(n, Hat) for n in result.nodes)
 
 
 # ---------------------------------------------------------------------------

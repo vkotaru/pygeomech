@@ -11,11 +11,12 @@ from geomech.core.operations.calculus import Variation
 
 class TestGetVariationVector:
     def test_so3_returns_eta(self):
-        """SO3('R').get_variation_vector() → Vector('\\eta_{R}')."""
+        """SO3('R').get_variation_vector() → TSO3('\\eta_{R}')."""
         R = SO3('R')
         eta = R.get_variation_vector()
-        assert isinstance(eta, Vector)
+        assert isinstance(eta, TSO3)
         assert eta.name == '\\eta_{R}'
+        assert eta.SO3 is R
 
     def test_s2_returns_xi(self):
         """S2('q').get_variation_vector() → Vector('\\xi_{q}')."""

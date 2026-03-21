@@ -93,11 +93,18 @@ def expand(expr):
             return _distribute(l, r, MMMul, MAdd, MAdd, MAdd)
 
         # --- Unary ops: recurse into child ---
+        # Hat and Vee are linear: Hat(a + b) = Hat(a) + Hat(b)
         case Hat():
-            return Hat(expand(expr.expr))
+            inner = expand(expr.expr)
+            if isinstance(inner, VAdd):
+                return MAdd(*[Hat(n) for n in inner.nodes])
+            return Hat(inner)
 
         case Vee():
-            return Vee(expand(expr.expr))
+            inner = expand(expr.expr)
+            if isinstance(inner, VAdd):
+                return VAdd(*[Vee(n) for n in inner.nodes])
+            return Vee(inner)
 
         case Variation():
             return Variation(expand(expr.expr))

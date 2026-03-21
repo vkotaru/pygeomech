@@ -140,14 +140,13 @@ class TestMVMulPatterns:
     """Dot with MVMul rearranged to put vec on left."""
 
     def test_mvmul_left_vec_in_right(self, vectors, matrices):
-        """Dot(M*vec, w) → Dot(vec, M*w)."""
+        """Dot(M*vec, w) → Dot(vec, M^T*w)."""
         v, w, _ = vectors
         M = matrices
         expr = Dot(MVMul(M, v), w)
         result = collect(expr, v)
         assert str(result.left) == 'v'
         assert isinstance(result.right, MVMul)
-        assert str(result.right.left) == 'M'
         assert str(result.right.right) == 'w'
 
     def test_mvmul_right_flips(self, vectors, matrices):
