@@ -396,11 +396,11 @@ class TestExtractFromVectorMVMulMAddMat:
 class TestExtractFromVectorLeaf:
     """extract_from_vector on leaf expressions."""
 
-    def test_plain_vector_not_target_raises(self, vectors):
-        """Plain Vector that isn't the target raises NotImplementedError."""
+    def test_plain_vector_not_target_is_zero(self, vectors):
+        """Plain Vector that isn't the target has zero coefficient."""
         v, w, _ = vectors
-        with pytest.raises(NotImplementedError, match="unhandled"):
-            extract_from_vector(w, v)
+        result = extract_from_vector(w, v)
+        assert result.is_zero
 
 
 class TestExtractFromVectorSVMul:

@@ -212,3 +212,44 @@ class TestKineticEnergyPatterns:
         # Cross(MVMul(M, w), u)
         assert isinstance(result.right.left, MVMul)
         assert str(result.right.right) == "u"
+
+
+# ---------------------------------------------------------------------------
+# Manifold-specific collect patterns
+# ---------------------------------------------------------------------------
+
+
+class TestCollectManifoldPatterns:
+    def test_cross_cross_collect(self):
+        """Dot(Cross(vec, a), Cross(b, c)) should collect vec to left."""
+
+        vec = Vector("vec")
+        a = Vector("a", attr=["Constant"])
+        b = Vector("b", attr=["Constant"])
+        c = Vector("c", attr=["Constant"])
+        expr = Dot(Cross(vec, a), Cross(b, c))
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"
+
+    def test_so3_rotation_stripping(self):
+        """Dot(R*a, R*b) → Dot(a, b) when R is SO3."""
+        from geomech.core.base.expressions import SO3
+
+        R = SO3("R")
+        vec = Vector("vec")
+        w = Vector("w", attr=["Constant"])
+        expr = Dot(MVMul(R, vec), MVMul(R, w))
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"
+
+    def test_mvmul_cross_deep_collect(self):
+        """Dot(MVMul(R, Cross(vec, rho)), w) should collect vec."""
+        from geomech.core.base.expressions import SO3
+
+        R = SO3("R")
+        vec = Vector("vec")
+        rho = Vector("rho", attr=["Constant"])
+        w = Vector("w", attr=["Constant"])
+        expr = Dot(MVMul(R, Cross(vec, rho)), w)
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"

@@ -46,17 +46,19 @@ def _is_tangent_orthogonal(a, b):
 
 
 def _try_s2_cross_reduction(expr):
-    """Try to simplify Cross expressions using S2 tangent space identities.
+    """Simplify Cross expressions using S2 unit-norm + tangent orthogonality.
 
-    BAC-CAB: q × (a × q) = a*(q·q) - q*(q·a)
-    When q is unit norm (S2) and a is in the tangent space (TS2 with parent q):
-      q × (a × q) = a
+    BAC-CAB: a × (b × c) = b(a·c) - c(a·b)
 
-    Also handles the flipped form:
-      cross(cross(a, q), q) = -cross(q, cross(a, q)) ... but
-      cross(cross(q, a), q) = a  (by anti-commutativity of inner cross)
+    When q is S2 (‖q‖=1) and a is known tangent (a ⊥ q):
+      q × (a × q) = a(q·q) - q(q·a) = a
+
+    Only fires when tangency is structurally provable (direct TS2 or
+    Cross(*, q)). For other cases (e.g. d/dt(ω)), the constraint
+    system (see GitHub issue #3) is needed.
     """
     l, r = expr.left, expr.right
+    _neg1 = Scalar("(-1)", value=-1, attr=["Constant"])
 
     # Pattern: Cross(q, Cross(a, q)) where q is S2, a is tangent to q
     if isinstance(l, S2) and isinstance(r, Cross) and r.right == l:
@@ -65,36 +67,29 @@ def _try_s2_cross_reduction(expr):
             return a
 
     # Pattern: Cross(q, Cross(q, a)) = -a (when a is tangent)
-    # q × (q × a) = q*(q·a) - a*(q·q) = -a  (since q·a=0 and q·q=1)
     if isinstance(l, S2) and isinstance(r, Cross) and r.left == l:
         a = r.right
         if _is_tangent_to_s2(a, l):
-            return SVMul(a, Scalar("(-1)", value=-1, attr=["Constant"]))
+            return SVMul(a, _neg1)
 
     # Pattern: Cross(Cross(q, a), q) = a (when a is tangent)
-    # (q × a) × q = q*(a·q) - a*(q·q) ... no, BAC-CAB is a×(b×c)
-    # Actually: (q×a) × q = -q × (q×a) = -(q*(q·a) - a*(q·q)) = a
     if isinstance(l, Cross) and isinstance(r, S2) and l.left == r:
         a = l.right
         if _is_tangent_to_s2(a, r):
             return a
 
     # Pattern: Cross(Cross(a, q), q) = -a (when a is tangent)
-    # (a×q) × q = -q × (a×q) = -(a*(q·q) - q*(q·a)) = -a
     if isinstance(l, Cross) and isinstance(r, S2) and l.right == r:
         a = l.left
         if _is_tangent_to_s2(a, r):
-            return SVMul(a, Scalar("(-1)", value=-1, attr=["Constant"]))
+            return SVMul(a, _neg1)
 
     # Pattern: Cross(a, Cross(a, q)) = -q*(a·a) when a is tangent to q
-    # a × (a × q) = a*(a·q) - q*(a·a) = -q*(a·a) since a⊥q
-    # This produces SVMul(q, -Dot(a,a)) = scalar * q
     if isinstance(r, Cross) and r.right is not None and isinstance(r.right, S2) and l == r.left:
         q = r.right
         a = l
         if _is_tangent_to_s2(a, q):
-            neg_one = Scalar("(-1)", value=-1, attr=["Constant"])
-            return SVMul(q, Mul(Dot(a, a), neg_one))
+            return SVMul(q, Mul(Dot(a, a), _neg1))
 
     return None
 
@@ -103,19 +98,16 @@ def _is_tangent_to_s2(expr, s2):
     """Check if expr is a tangent vector to the given S2 manifold.
 
     Returns True for TS2 vectors whose parent is the given S2,
-    or for TimeDerivative/Variation of such vectors.
-    """
-    from geomech.core.operations.calculus import TimeDerivative, Variation
+    or for Cross(anything, q) which is perpendicular to q by definition.
 
+    Does NOT recurse into TimeDerivative or Variation — while ω̇ ⊥ q
+    is provable for S2, this requires a constraint system to verify
+    properly (see GitHub issue #3). Without constraints, we only
+    apply BAC-CAB to vectors we can structurally confirm as tangent.
+    """
     # Direct TS2
     if isinstance(expr, TS2) and expr.S2 is s2:
         return True
-    # TimeDerivative(TS2) — angular acceleration stays in tangent space
-    if isinstance(expr, TimeDerivative):
-        return _is_tangent_to_s2(expr.expr, s2)
-    # Variation(TS2)
-    if isinstance(expr, Variation):
-        return _is_tangent_to_s2(expr.expr, s2)
     # Cross(a, q) is tangent to q (perpendicular to q by definition)
     if isinstance(expr, Cross):
         if expr.right == s2 or expr.left == s2:

@@ -659,6 +659,44 @@ class TestCommutativeEqual:
 
 
 # ===================================================================
+# Hat/Cross simplification
+# ===================================================================
+
+
+class TestHatCrossSimplification:
+    def test_hat_v_times_w_becomes_cross(self):
+        """MVMul(Hat(v), w) should simplify to Cross(v, w)."""
+        v = Vector("v")
+        w = Vector("w")
+        expr = MVMul(Hat(v), w)
+        result = full_simplify(expr)
+        assert isinstance(result, Cross)
+        assert str(result.left) == "v"
+        assert str(result.right) == "w"
+
+    def test_hat_distributes_over_vadd(self):
+        """Hat(x + y) → Hat(x) + Hat(y) after expand."""
+        from geomech.core.transformations import expand
+
+        x = Vector("x")
+        y = Vector("y")
+        expr = Hat(VAdd(x, y))
+        result = expand(expr)
+        assert isinstance(result, MAdd)
+        assert len(result.nodes) == 2
+
+    def test_mmmul_mvmul_associativity(self):
+        """MVMul(A, Hat(v)*w) → MVMul(A, Cross(v, w)) after simplify."""
+        A = Matrix("A", attr=["Constant"])
+        v = Vector("v")
+        w = Vector("w")
+        expr = MVMul(A, MVMul(Hat(v), w))
+        result = full_simplify(expr)
+        assert isinstance(result, MVMul)
+        assert isinstance(result.right, Cross)
+
+
+# ===================================================================
 # Helpers (used in tests)
 # ===================================================================
 

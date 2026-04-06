@@ -21,22 +21,8 @@ from geomech.core.operations.multiplication import (
 from geomech.utils.errors import ExpressionMismatchError
 
 # ===================================================================
-# Variation
+# Variation (TestVariationType is in test_calculus.py)
 # ===================================================================
-
-
-class TestVariationType:
-    def test_scalar(self):
-        a = Scalar("a")
-        assert Variation(a).type == ExprType.SCALAR
-
-    def test_vector(self):
-        x = Vector("x")
-        assert Variation(x).type == ExprType.VECTOR
-
-    def test_matrix(self):
-        M = Matrix("M")
-        assert Variation(M).type == ExprType.MATRIX
 
 
 class TestVariationConstruction:
