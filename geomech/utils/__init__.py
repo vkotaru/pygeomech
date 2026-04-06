@@ -1,1 +1,1 @@
-from geomech.utils.printing import print_eom, print_tree, tree_str, render_eom, eom_to_latex
+from geomech.utils.printing import eom_to_latex, print_eom, print_tree, render_eom, tree_str

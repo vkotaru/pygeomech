@@ -10,18 +10,17 @@ So:  Dot(target, rhs)  →  Dot(-target.t_integrate(), rhs.t_diff())
 
 from __future__ import annotations
 
-from geomech.core.operations.addition import Add
-from geomech.core.operations.multiplication import Mul
-from geomech.core.operations.geometry import Dot
-
 from geomech.core.math.collect import collect
+from geomech.core.operations.addition import Add
+from geomech.core.operations.geometry import Dot
+from geomech.core.operations.multiplication import Mul
 from geomech.core.transformations.expand import expand
 from geomech.core.transformations.simplify import full_simplify
-
 
 # ---------------------------------------------------------------------------
 # Single IBP pass
 # ---------------------------------------------------------------------------
+
 
 def _apply_ibp(expr, target):
     """Apply integration by parts to *expr* with respect to *target*.
@@ -48,6 +47,7 @@ def _apply_ibp(expr, target):
 # ---------------------------------------------------------------------------
 # Full IBP pipeline
 # ---------------------------------------------------------------------------
+
 
 def integrate_by_parts(expr, targets):
     """Expand, simplify, then apply collect + IBP for each target.

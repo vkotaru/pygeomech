@@ -1,4 +1,4 @@
-from geomech.core.operations.addition import Add, VAdd, MAdd
+from geomech.core.operations.addition import Add, MAdd, VAdd
 from geomech.core.operations.mixins import _BinaryMixin, _NaryMixin
 
 

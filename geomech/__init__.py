@@ -10,37 +10,81 @@ del sys
 
 # --- Layer 1: types & leaf nodes ---
 from geomech.core.base import (
-    ExprType, ExprFlags, ManifoldInfo,
-    Expr, ScalarExpr, Scalar, VectorExpr, Vector, MatrixExpr, Matrix,
-    S2, TS2, TSO3, SO3, SkewSymmMatrix,
-    Zero, One, ZeroVector, ZeroMatrix, IdentityMatrix, O, I,
-    Number, getScalars, getVectors, getMatrices,
-)
-
-# --- Layer 2: expression tree nodes ---
-from geomech.core.operations import (
-    Add, VAdd, MAdd,
-    Mul, SVMul, SMMul, MVMul, MMMul, VVMul,
-    Dot, Cross, Hat, Vee, Transpose,
-    Variation, TimeDerivative, TimeIntegral,
-)
-
-# --- Layer 3: algorithms ---
-from geomech.core.transformations import (
-    expand, pull, vector_rules, simplify, full_simplify,
-    is_leaf, has_nested_add,
+    S2,
+    SO3,
+    TS2,
+    TSO3,
+    Expr,
+    ExprFlags,
+    ExprType,
+    I,
+    IdentityMatrix,
+    ManifoldInfo,
+    Matrix,
+    MatrixExpr,
+    Number,
+    O,
+    One,
+    Scalar,
+    ScalarExpr,
+    SkewSymmMatrix,
+    Vector,
+    VectorExpr,
+    Zero,
+    ZeroMatrix,
+    ZeroVector,
+    getMatrices,
+    getScalars,
+    getVectors,
 )
 
 # --- Layer 4: symbolic math ---
 from geomech.core.math import (
-    extract_coeff, collect, integrate_by_parts,
+    collect,
+    extract_coeff,
+    integrate_by_parts,
+)
+
+# --- Layer 2: expression tree nodes ---
+from geomech.core.operations import (
+    Add,
+    Cross,
+    Dot,
+    Hat,
+    MAdd,
+    MMMul,
+    Mul,
+    MVMul,
+    SMMul,
+    SVMul,
+    TimeDerivative,
+    TimeIntegral,
+    Transpose,
+    VAdd,
+    Variation,
+    Vee,
+    VVMul,
+)
+
+# --- Layer 3: algorithms ---
+from geomech.core.transformations import (
+    expand,
+    full_simplify,
+    has_nested_add,
+    is_leaf,
+    pull,
+    simplify,
+    vector_rules,
 )
 
 # --- Layer 5: dynamics pipeline ---
 from geomech.dynamics import (
-    SystemVariables, compute_eom, separate_variations,
-    StandardFormEquation, to_standard_form,
+    StandardFormEquation,
+    SystemVariables,
+    compute_eom,
+    separate_variations,
+    to_standard_form,
 )
 
 # --- Utilities ---
-from geomech.utils import print_eom, print_tree, tree_str, render_eom, eom_to_latex
+from geomech.utils import eom_to_latex, print_eom, print_tree, render_eom, tree_str

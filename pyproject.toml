@@ -14,6 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "ruff",
 ]
 docs = [
     "mkdocs-material",
@@ -28,3 +29,22 @@ include = ["geomech*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E741",   # ambiguous variable name (l, I, O — common in math/physics)
+    "E731",   # lambda assignment (used for lazy constants)
+    "E701",   # multiple statements on one line (match/case style)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "E402"]  # re-exports and version-gated imports are intentional
+"examples/*" = ["F401", "E402", "F811"]  # examples are scripts
+
+[tool.ruff.lint.isort]
+known-first-party = ["geomech"]

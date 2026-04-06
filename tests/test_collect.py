@@ -2,24 +2,24 @@
 
 import pytest
 
-from geomech.core.base.expressions import Scalar, Vector, Matrix
-from geomech.core.operations.addition import Add
-from geomech.core.operations.multiplication import Mul, MVMul
-from geomech.core.operations.geometry import Dot, Cross
+from geomech.core.base.expressions import Matrix, Scalar, Vector
 from geomech.core.math.collect import collect
+from geomech.core.operations.addition import Add
+from geomech.core.operations.geometry import Cross, Dot
+from geomech.core.operations.multiplication import Mul, MVMul
 
 
 @pytest.fixture
 def vectors():
-    v = Vector('v')
-    w = Vector('w')
-    u = Vector('u')
+    v = Vector("v")
+    w = Vector("w")
+    u = Vector("u")
     return v, w, u
 
 
 @pytest.fixture
 def matrices():
-    M = Matrix('M')
+    M = Matrix("M")
     return M
 
 
@@ -27,13 +27,14 @@ def matrices():
 # Passthrough cases
 # ===========================================================================
 
+
 class TestPassthrough:
     """Expressions that don't contain vec or aren't Dot return unchanged."""
 
     def test_scalar_leaf(self, vectors):
         """Scalar leaf passes through."""
         v, _, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         assert collect(s, v) is s
 
     def test_dot_neither_has_vec(self, vectors):
@@ -48,6 +49,7 @@ class TestPassthrough:
 # Simple flip / already canonical
 # ===========================================================================
 
+
 class TestSimpleFlip:
     """Dot(_, vec) flips to Dot(vec, _)."""
 
@@ -56,21 +58,22 @@ class TestSimpleFlip:
         v, w, _ = vectors
         expr = Dot(v, w)
         result = collect(expr, v)
-        assert str(result.left) == 'v'
-        assert str(result.right) == 'w'
+        assert str(result.left) == "v"
+        assert str(result.right) == "w"
 
     def test_vec_on_right_flips(self, vectors):
         """Dot(w, vec) flips to Dot(vec, w)."""
         v, w, _ = vectors
         expr = Dot(w, v)
         result = collect(expr, v)
-        assert str(result.left) == 'v'
-        assert str(result.right) == 'w'
+        assert str(result.left) == "v"
+        assert str(result.right) == "w"
 
 
 # ===========================================================================
 # Add / Mul recursion
 # ===========================================================================
+
 
 class TestRecursion:
     """collect recurses through Add and Mul."""
@@ -82,24 +85,25 @@ class TestRecursion:
         result = collect(expr, v)
         assert isinstance(result, Add)
         # First term should be flipped, second already canonical
-        assert str(result.nodes[0].left) == 'v'
-        assert str(result.nodes[1].left) == 'v'
+        assert str(result.nodes[0].left) == "v"
+        assert str(result.nodes[1].left) == "v"
 
     def test_mul_collects_each_side(self, vectors):
         """Mul(s, Dot(w, vec)) → Dot is collected inside Mul."""
         v, w, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         expr = Mul(s, Dot(w, v))
         result = collect(expr, v)
         assert isinstance(result, Mul)
         # Right side should have vec on left of Dot
         assert isinstance(result.right, Dot)
-        assert str(result.right.left) == 'v'
+        assert str(result.right.left) == "v"
 
 
 # ===========================================================================
 # Cross — scalar triple product
 # ===========================================================================
+
 
 class TestCrossPatterns:
     """Dot(_, Cross(..)) rearranged via scalar triple product."""
@@ -109,20 +113,20 @@ class TestCrossPatterns:
         v, w, u = vectors
         expr = Dot(w, Cross(v, u))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, Cross)
-        assert str(result.right.left) == 'u'
-        assert str(result.right.right) == 'w'
+        assert str(result.right.left) == "u"
+        assert str(result.right.right) == "w"
 
     def test_cross_right_right_is_vec(self, vectors):
         """Dot(w, Cross(u, vec)) → Dot(vec, Cross(w, u))."""
         v, w, u = vectors
         expr = Dot(w, Cross(u, v))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, Cross)
-        assert str(result.right.left) == 'w'
-        assert str(result.right.right) == 'u'
+        assert str(result.right.left) == "w"
+        assert str(result.right.right) == "u"
 
     def test_cross_neither_has_vec(self, vectors):
         """Dot(w, Cross(u, w)) where vec not present returns unchanged."""
@@ -136,19 +140,19 @@ class TestCrossPatterns:
 # MVMul patterns
 # ===========================================================================
 
+
 class TestMVMulPatterns:
     """Dot with MVMul rearranged to put vec on left."""
 
     def test_mvmul_left_vec_in_right(self, vectors, matrices):
-        """Dot(M*vec, w) → Dot(vec, M*w)."""
+        """Dot(M*vec, w) → Dot(vec, M^T*w)."""
         v, w, _ = vectors
         M = matrices
         expr = Dot(MVMul(M, v), w)
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, MVMul)
-        assert str(result.right.left) == 'M'
-        assert str(result.right.right) == 'w'
+        assert str(result.right.right) == "w"
 
     def test_mvmul_right_flips(self, vectors, matrices):
         """Dot(w, M*vec) → flips to Dot(M*vec, w) then → Dot(vec, M*w)."""
@@ -156,13 +160,14 @@ class TestMVMulPatterns:
         M = matrices
         expr = Dot(w, MVMul(M, v))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, MVMul)
 
 
 # ===========================================================================
 # MVMul + Cross (kinetic energy patterns)
 # ===========================================================================
+
 
 class TestKineticEnergyPatterns:
     """Dot(MVMul, Cross) patterns from kinetic energy terms."""
@@ -175,7 +180,7 @@ class TestKineticEnergyPatterns:
         result = collect(expr, v)
         # Flips to Dot(MVMul(M,v), Cross(w,u)), then MVMul.right == v
         # → Dot(v, Cross(MVMul(M, w), u))
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
 
     def test_mvmul_cross_vec_in_cross_left(self, vectors, matrices):
         """Dot(M*a, Cross(vec, c)) → Dot(vec, Cross(c, M*a))."""
@@ -183,9 +188,9 @@ class TestKineticEnergyPatterns:
         M = matrices
         expr = Dot(MVMul(M, w), Cross(v, u))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, Cross)
-        assert str(result.right.left) == 'u'
+        assert str(result.right.left) == "u"
 
     def test_mvmul_cross_vec_in_cross_right(self, vectors, matrices):
         """Dot(M*a, Cross(b, vec)) → Dot(vec, Cross(M*a, b))."""
@@ -193,7 +198,7 @@ class TestKineticEnergyPatterns:
         M = matrices
         expr = Dot(MVMul(M, w), Cross(u, v))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, Cross)
 
     def test_mvmul_cross_vec_in_mvmul(self, vectors, matrices):
@@ -202,8 +207,49 @@ class TestKineticEnergyPatterns:
         M = matrices
         expr = Dot(MVMul(M, v), Cross(w, u))
         result = collect(expr, v)
-        assert str(result.left) == 'v'
+        assert str(result.left) == "v"
         assert isinstance(result.right, Cross)
         # Cross(MVMul(M, w), u)
         assert isinstance(result.right.left, MVMul)
-        assert str(result.right.right) == 'u'
+        assert str(result.right.right) == "u"
+
+
+# ---------------------------------------------------------------------------
+# Manifold-specific collect patterns
+# ---------------------------------------------------------------------------
+
+
+class TestCollectManifoldPatterns:
+    def test_cross_cross_collect(self):
+        """Dot(Cross(vec, a), Cross(b, c)) should collect vec to left."""
+
+        vec = Vector("vec")
+        a = Vector("a", attr=["Constant"])
+        b = Vector("b", attr=["Constant"])
+        c = Vector("c", attr=["Constant"])
+        expr = Dot(Cross(vec, a), Cross(b, c))
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"
+
+    def test_so3_rotation_stripping(self):
+        """Dot(R*a, R*b) → Dot(a, b) when R is SO3."""
+        from geomech.core.base.expressions import SO3
+
+        R = SO3("R")
+        vec = Vector("vec")
+        w = Vector("w", attr=["Constant"])
+        expr = Dot(MVMul(R, vec), MVMul(R, w))
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"
+
+    def test_mvmul_cross_deep_collect(self):
+        """Dot(MVMul(R, Cross(vec, rho)), w) should collect vec."""
+        from geomech.core.base.expressions import SO3
+
+        R = SO3("R")
+        vec = Vector("vec")
+        rho = Vector("rho", attr=["Constant"])
+        w = Vector("w", attr=["Constant"])
+        expr = Dot(MVMul(R, Cross(vec, rho)), w)
+        result = collect(expr, vec)
+        assert str(result.left) == "vec"

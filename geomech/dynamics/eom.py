@@ -12,8 +12,8 @@ from __future__ import annotations
 from geomech.core.math.extract import extract_coeff
 from geomech.core.math.ibp import integrate_by_parts
 from geomech.core.transformations.expand import expand
+from geomech.core.transformations.manifold_rules import apply_manifold_rules
 from geomech.core.transformations.simplify import full_simplify
-
 from geomech.dynamics.variables import SystemVariables
 
 
@@ -22,22 +22,32 @@ def compute_eom(lagrangian, inf_work, variables: SystemVariables):
 
     1. Take the variation of the Lagrangian: δL
     2. Form the infinitesimal action integral: δS = δL + δW
-    3. Simplify
-    4. Gather variation vectors and their time derivatives
-    5. Integration by parts to move time derivatives off variation vectors
-    6. Expand
-    7. Extract coefficients of each independent variation vector
+    3. Apply manifold kinematic substitutions (e.g. δ(ω) for S2)
+    4. Simplify
+    5. Gather variation vectors and their time derivatives
+    6. Integration by parts to move time derivatives off variation vectors
+    7. Expand
+    8. Extract coefficients of each independent variation vector
     """
     # variation of the Lagrangian
     dL = lagrangian.delta()
 
     # infinitesimal action integral
     dS = dL + inf_work
+
+    # apply manifold kinematic substitutions
+    dS = apply_manifold_rules(dS, variables)
+
     dS = full_simplify(dS)
 
     # gather variation vectors and their time derivatives
     variation_vectors = []
     variation_vector_dots = []
+
+    if variables.scalars:
+        raise NotImplementedError(
+            "Scalar configuration variables not yet supported in EOM pipeline"
+        )
 
     for vec in variables.vectors:
         x = vec.get_variation_vector()

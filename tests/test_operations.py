@@ -1,47 +1,57 @@
 import pytest
-from geomech.core.base import Scalar, getScalars, Vector, getVectors, Matrix, getMatrices, ExprType
-from geomech.core.operations import Add, VAdd, MAdd, Mul, SVMul, MMMul, MVMul, Dot, Cross, Hat, Vee, Variation, Transpose
-from geomech.core.transformations import expand, simplify, full_simplify
+
+from geomech.core.base import Matrix, Scalar, Vector, getMatrices, getScalars, getVectors
+from geomech.core.operations import (
+    Add,
+    Cross,
+    Dot,
+    Hat,
+    MAdd,
+    Mul,
+    VAdd,
+    Variation,
+)
+from geomech.core.transformations import expand
 
 
 class TestProductRuleDelta:
     def test_scalar_mul_delta(self):
-        a, b = getScalars('a b')
+        a, b = getScalars("a b")
         expr = a * b
         d = expr.delta()
         assert isinstance(d, Add)
 
     def test_scalar_vector_mul_delta(self):
-        a = Scalar('a')
-        x = Vector('x')
+        a = Scalar("a")
+        x = Vector("x")
         expr = a * x
         d = expr.delta()
         assert isinstance(d, VAdd)
 
     def test_matrix_vector_mul_delta(self):
-        M = Matrix('M')
-        x = Vector('x')
+        M = Matrix("M")
+        x = Vector("x")
         expr = M * x
         d = expr.delta()
         assert isinstance(d, VAdd)
 
     def test_matrix_matrix_mul_delta(self):
-        M, N = getMatrices('M N')
+        M, N = getMatrices("M N")
         expr = M * N
         d = expr.delta()
         assert isinstance(d, MAdd)
 
     def test_constant_left_delta(self):
-        m = Scalar('m', attr=['Constant'])
-        a = Scalar('a')
+        m = Scalar("m", attr=["Constant"])
+        a = Scalar("a")
         expr = m * a
         d = expr.delta()
         # Only right varies: m * delta(a)
         assert isinstance(d, Mul)
 
     def test_constant_right_delta(self):
-        a = Scalar('a')
-        m = Scalar('m', attr=['Constant'])
+        a = Scalar("a")
+        m = Scalar("m", attr=["Constant"])
         expr = a * m
         d = expr.delta()
         # Only left varies: delta(a) * m
@@ -50,19 +60,19 @@ class TestProductRuleDelta:
 
 class TestAdditionDelta:
     def test_scalar_add_delta(self):
-        a, b = getScalars('a b')
+        a, b = getScalars("a b")
         expr = a + b
         d = expr.delta()
         assert isinstance(d, Add)
 
     def test_vector_add_delta(self):
-        x, y = getVectors(['x', 'y'])
+        x, y = getVectors(["x", "y"])
         expr = x + y
         d = expr.delta()
         assert isinstance(d, VAdd)
 
     def test_matrix_add_delta(self):
-        M, N = getMatrices('M N')
+        M, N = getMatrices("M N")
         expr = M + N
         d = expr.delta()
         assert isinstance(d, MAdd)
@@ -70,13 +80,13 @@ class TestAdditionDelta:
 
 class TestAdditionDiff:
     def test_scalar_add_diff(self):
-        a, b = getScalars('a b')
+        a, b = getScalars("a b")
         expr = a + b
         d = expr.t_diff()
         assert isinstance(d, Add)
 
     def test_vector_add_diff(self):
-        x, y = getVectors(['x', 'y'])
+        x, y = getVectors(["x", "y"])
         expr = x + y
         d = expr.t_diff()
         assert isinstance(d, VAdd)
@@ -84,32 +94,32 @@ class TestAdditionDiff:
 
 class TestNaryAdd:
     def test_nary_scalar_add(self):
-        a, b, c, d, e = getScalars('a b c d e')
+        a, b, c, d, e = getScalars("a b c d e")
         result = Add(a, b, Add(c, d, e))
         # Nested Add should be flattened
         assert isinstance(result, Add)
         assert len(result) == 5
 
     def test_nary_vector_add(self):
-        x, y, z = getVectors(['x', 'y', 'z'])
+        x, y, z = getVectors(["x", "y", "z"])
         result = VAdd(x, y, z)
         assert len(result) == 3
 
     def test_nary_matrix_add(self):
-        A, B, C = getMatrices('A B C')
+        A, B, C = getMatrices("A B C")
         result = MAdd(A, B, C)
         assert len(result) == 3
 
 
 class TestExpansion:
     def test_expand_scalar_distribution(self):
-        a, b, c = getScalars('a b c')
+        a, b, c = getScalars("a b c")
         expr = (a + b) * c
         expanded = expand(expr)
         assert isinstance(expanded, Add)
 
     def test_expand_dot_distribution(self):
-        x, y, z = getVectors(['x', 'y', 'z'])
+        x, y, z = getVectors(["x", "y", "z"])
         expr = Dot(x + y, z)
         expanded = expand(expr)
         assert isinstance(expanded, Add)
@@ -117,27 +127,27 @@ class TestExpansion:
 
 class TestGeometry:
     def test_dot_creation(self):
-        x, y = getVectors(['x', 'y'])
+        x, y = getVectors(["x", "y"])
         d = Dot(x, y)
         assert d.type.value == 1  # SCALAR
-        assert str(d) == 'Dot(x,y)'
+        assert str(d) == "Dot(x,y)"
 
     def test_cross_creation(self):
-        x, y = getVectors(['x', 'y'])
+        x, y = getVectors(["x", "y"])
         c = Cross(x, y)
         assert c.type.value == 2  # VECTOR
-        assert str(c) == 'Cross(x,y)'
+        assert str(c) == "Cross(x,y)"
 
     def test_hat_creation(self):
-        x = Vector('x')
+        x = Vector("x")
         h = Hat(x)
         assert h.type.value == 3  # MATRIX
-        assert str(h) == 'Hat(x)'
+        assert str(h) == "Hat(x)"
 
     def test_delta_creation(self):
-        x = Vector('x')
+        x = Vector("x")
         d = Variation(x)
-        assert str(d) == '\\delta{x}'
+        assert str(d) == "\\delta{x}"
 
 
 class TestSanityCheck:
@@ -145,15 +155,24 @@ class TestSanityCheck:
 
     def test_full_sanity_check(self):
         from geomech import (
-            getScalars, getVectors, getMatrices, S2, SO3,
-            Transpose, Add, VAdd, MAdd, Dot, Cross, Hat,
-            Mul, SVMul, MVMul, MMMul,
+            S2,
+            SO3,
+            Add,
+            MAdd,
+            MMMul,
+            Mul,
+            MVMul,
+            SVMul,
+            Transpose,
+            VAdd,
+            getMatrices,
+            getScalars,
+            getVectors,
         )
-        from geomech.utils.errors import ExpressionMismatchError
 
-        a, b, c = getScalars('a b c')
-        x, y, z = getVectors(['x', 'y', 'z'])
-        M, N = getMatrices('M N')
+        a, b, c = getScalars("a b c")
+        x, y, z = getVectors(["x", "y", "z"])
+        M, N = getMatrices("M N")
 
         # Scalar ops
         assert isinstance(a + b, Add)
@@ -179,12 +198,12 @@ class TestSanityCheck:
         assert isinstance(d, Add)
 
         # Manifolds
-        q = S2('q')
+        q = S2("q")
         assert q.is_manifold
-        xi = q.get_variation_vector()
-        om = q.get_tangent_vector()
+        _xi = q.get_variation_vector()  # noqa: F841
+        _om = q.get_tangent_vector()  # noqa: F841
 
-        R = SO3('R')
+        R = SO3("R")
         assert R.is_manifold
-        eta = R.get_variation_vector()
-        Om = R.get_tangent_vector()
+        _eta = R.get_variation_vector()  # noqa: F841
+        _Om = R.get_tangent_vector()  # noqa: F841

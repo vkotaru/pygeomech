@@ -18,6 +18,8 @@ class ExprFlags:
     is_unit_norm: bool = False
     is_identity: bool = False
     is_symmetric: bool = False
+    is_skew_symmetric: bool = False
+    is_orthogonal: bool = False
     is_numeric: bool = False
     is_manifold: bool = False
 
@@ -28,22 +30,26 @@ class ExprFlags:
         flags = cls()
         for a in attrs:
             match a:
-                case 'Constant':
+                case "Constant":
                     flags.is_constant = True
-                case 'Zero':
+                case "Zero":
                     flags.is_zero = True
                     flags.is_constant = True
-                case 'Ones':
+                case "Ones":
                     flags.is_ones = True
                     flags.is_constant = True
-                case 'Identity':
+                case "Identity":
                     flags.is_identity = True
                     flags.is_constant = True
-                case 'UnitNorm':
+                case "UnitNorm":
                     flags.is_unit_norm = True
-                case 'SymmetricMatrix':
+                case "SymmetricMatrix":
                     flags.is_symmetric = True
-                case 'Manifold':
+                case "SkewSymmetricMatrix":
+                    flags.is_skew_symmetric = True
+                case "OrthogonalMatrix":
+                    flags.is_orthogonal = True
+                case "Manifold":
                     flags.is_manifold = True
         return flags
 

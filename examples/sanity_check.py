@@ -1,9 +1,9 @@
 from geomech import *
 from geomech.utils.errors import ExpressionMismatchError
 
-a, b, c = getScalars('a b c')
-x, y, z = getVectors(['x', 'y', 'z'])
-M, N = getMatrices('M N')
+a, b, c = getScalars("a b c")
+x, y, z = getVectors(["x", "y", "z"])
+M, N = getMatrices("M N")
 
 # Scalars
 # -------
@@ -13,7 +13,7 @@ scalar_scalar_scalar_add = a + b + c
 try:
     scalar_vector_add = a + x
 except Exception as e:
-    print('ExpressionMismatchError: scalar_vector_add = a + x ', e)
+    print("ExpressionMismatchError: scalar_vector_add = a + x ", e)
 
 scalar_scalar_mul = a * b
 scalar_vector_mul = a * x
@@ -30,12 +30,12 @@ vecT_vec_mul = Transpose(x) * y
 try:
     vec_vec_mul = x * y
 except ExpressionMismatchError:
-    print('ExpressionMismatchError: vec_vec_mul = x * y')
+    print("ExpressionMismatchError: vec_vec_mul = x * y")
 
 try:
     vec_mat_mul = x * M
 except ExpressionMismatchError:
-    print('ExpressionMismatchError: vec_mat_mul = x*M')
+    print("ExpressionMismatchError: vec_mat_mul = x*M")
 vecT_mat_mul = Transpose(x) * M
 
 # Matrix
@@ -75,7 +75,7 @@ x2_ = x.t_integrate()
 delx2 = ddelx.t_integrate()
 
 # -------------
-q = S2('q')
+q = S2("q")
 xi = q.get_variation_vector()
 om = q.get_tangent_vector()
 dxi = xi.t_diff()
@@ -84,7 +84,7 @@ delxi = xi.delta()
 delom = om.delta()
 
 # ---------------
-R = SO3('R')
+R = SO3("R")
 eta = R.get_variation_vector()
 Om = R.get_tangent_vector()
 deta = eta.t_diff()
@@ -93,4 +93,4 @@ deleta = eta.delta()
 delOm = Om.delta()
 
 # print(R1R2)
-print('done')
+print("done")

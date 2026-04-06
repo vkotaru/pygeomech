@@ -3,10 +3,11 @@
 Bottom-up traversal: recurse into children first, then handle the
 current node.  O(n) single pass — no has_nested_scalars predicate needed.
 """
-from geomech.core.operations.addition import Add, VAdd, MAdd
-from geomech.core.operations.multiplication import Mul, SVMul, SMMul, MVMul, MMMul
-from geomech.core.operations.geometry import Dot, Cross
-from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
+
+from geomech.core.operations.addition import Add, MAdd, VAdd
+from geomech.core.operations.calculus import TimeDerivative, TimeIntegral, Variation
+from geomech.core.operations.geometry import Cross, Dot
+from geomech.core.operations.multiplication import MMMul, Mul, MVMul, SMMul, SVMul
 
 
 def pull(expr):
