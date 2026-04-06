@@ -18,6 +18,8 @@ class Expr:
     """Base expression node."""
 
     def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
         return str(self) == str(other)
 
     def __hash__(self):
