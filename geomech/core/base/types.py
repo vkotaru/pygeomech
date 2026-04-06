@@ -18,6 +18,8 @@ class ExprFlags:
     is_unit_norm: bool = False
     is_identity: bool = False
     is_symmetric: bool = False
+    is_skew_symmetric: bool = False
+    is_orthogonal: bool = False
     is_numeric: bool = False
     is_manifold: bool = False
 
@@ -43,6 +45,10 @@ class ExprFlags:
                     flags.is_unit_norm = True
                 case 'SymmetricMatrix':
                     flags.is_symmetric = True
+                case 'SkewSymmetricMatrix':
+                    flags.is_skew_symmetric = True
+                case 'OrthogonalMatrix':
+                    flags.is_orthogonal = True
                 case 'Manifold':
                     flags.is_manifold = True
         return flags

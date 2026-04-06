@@ -142,7 +142,7 @@ class TestSkewSymmMatrix:
     def test_creation_with_name(self):
         S = SkewSymmMatrix('S')
         assert str(S) == 'S'
-        assert 'SkewSymmetry' in S.attr
+        assert 'SkewSymmetricMatrix' in S.attr
 
 
 class TestSO3Manifold:

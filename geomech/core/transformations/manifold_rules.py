@@ -24,7 +24,6 @@ from geomech.core.operations.calculus import Variation, TimeDerivative
 
 from geomech.dynamics.variables import SystemVariables
 
-
 _NEG1 = Scalar('(-1)', value=-1, attr=['Constant'])
 
 
@@ -70,12 +69,14 @@ def _substitute(expr, tangent_map):
                     TimeDerivative(var_vec),
                     SVMul(Cross(omega, var_vec), _NEG1),
                 )
-            else:
+            elif kind == 'SO3':
                 # δ(Ω) = η̇ + Ω × η
                 return VAdd(
                     TimeDerivative(var_vec),
                     Cross(omega, var_vec),
                 )
+            else:
+                raise ValueError(f"Unknown manifold kind: {kind}")
         # Variation of non-tangent or unknown — recurse into inner
         inner_sub = _substitute(inner, tangent_map)
         if inner_sub is not inner:
@@ -99,7 +100,12 @@ def _rebuild(expr, new_nodes):
     """Rebuild an expression node with new children."""
     from geomech.core.operations.addition import Add, VAdd, MAdd
     from geomech.core.operations.multiplication import (
-        Mul, SVMul, SMMul, MVMul, MMMul, VVMul,
+        Mul,
+        SVMul,
+        SMMul,
+        MVMul,
+        MMMul,
+        VVMul,
     )
     from geomech.core.operations.geometry import Dot, Cross, Hat, Vee, Transpose
     from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
@@ -115,7 +121,9 @@ def _rebuild(expr, new_nodes):
         return cls(new_nodes[0], new_nodes[1])
 
     # Unary ops
-    if isinstance(expr, (Hat, Vee, Transpose, Variation, TimeDerivative, TimeIntegral)):
+    if isinstance(
+            expr,
+        (Hat, Vee, Transpose, Variation, TimeDerivative, TimeIntegral)):
         return cls(new_nodes[0])
 
     return expr

@@ -16,6 +16,28 @@ class Variation(_CalcUnaryMixin, Expr):
     nodes: list = field(default_factory=list)
 
     def __init__(self, expr):
+        from geomech.core.base.expressions import TS2, TSO3
+        # δ(δ(...)) is a second-order variation — vanishes in Hamilton's principle
+        if isinstance(expr, Variation):
+            raise ValueError(
+                f'Cannot take variation of a variation: δ(δ({expr.expr})). '
+                f'Second-order variations vanish in Hamilton\'s principle.'
+            )
+        # δ(ξ) or δ(η) where ξ/η are already variation vectors is nonsensical
+        if isinstance(expr, TS2) and expr.S2 is not None:
+            var_name = expr.S2.manifold_info.variation_vector_name
+            if expr.name == var_name:
+                raise ValueError(
+                    f'Cannot take variation of variation vector {expr}. '
+                    f'The variation vector is already an infinitesimal perturbation.'
+                )
+        if isinstance(expr, TSO3) and expr.SO3 is not None:
+            var_name = expr.SO3.manifold_info.variation_vector_name
+            if expr.name == var_name:
+                raise ValueError(
+                    f'Cannot take variation of variation vector {expr}. '
+                    f'The variation vector is already an infinitesimal perturbation.'
+                )
         self.nodes = [expr]
 
     def __str__(self):

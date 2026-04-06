@@ -79,6 +79,14 @@ class Expr:
         return self._flag('is_symmetric')
 
     @property
+    def is_skew_symmetric(self):
+        return self._flag('is_skew_symmetric')
+
+    @property
+    def is_orthogonal(self):
+        return self._flag('is_orthogonal')
+
+    @property
     def is_manifold(self):
         return self._flag('is_manifold')
 
@@ -317,12 +325,13 @@ class TS2(Vector):
 
 
 class S2(Vector):
-    """S2 manifold (unit sphere)."""
+    """S2 manifold (unit sphere in R3, ||q|| = 1)."""
 
     def __init__(self, s=None, *, size=(3,), value=None, attr=None):
         if attr is None:
             attr = []
         attr.append('Manifold')
+        attr.append('UnitNorm')
         super().__init__(s, size=size, value=value, attr=attr)
         self.manifold_info = ManifoldInfo(
             tangent_vector_name='\\omega_{' + self.name + '}',
@@ -436,16 +445,17 @@ class Matrix(MatrixExpr):
 class SkewSymmMatrix(Matrix):
     def __init__(self, s=None, *, size=(3, 3), value=None, attr=None):
         super().__init__(s, size=size, value=value, attr=attr)
-        self.attr.append('SkewSymmetry')
+        self.attr.append('SkewSymmetricMatrix')
 
 
 class SO3(Matrix):
-    """SO(3) rotation matrix manifold."""
+    """SO(3) rotation matrix manifold (R^T R = I, det(R) = 1)."""
 
     def __init__(self, s=None, *, size=(3, 3), value=None, attr=None):
         if attr is None:
             attr = []
         attr.append('Manifold')
+        attr.append('OrthogonalMatrix')
         super().__init__(s, size=size, value=value, attr=attr)
         self.manifold_info = ManifoldInfo(
             tangent_vector_name='\\Omega_{' + self.name + '}',

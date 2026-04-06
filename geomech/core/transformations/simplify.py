@@ -113,6 +113,14 @@ def _eliminate(expr):
                 return r
             if _is_identity(r):
                 return l
+            # R^T * R = I  when R is orthogonal (SO3)
+            if (isinstance(l, Transpose) and l.expr.is_orthogonal
+                    and l.expr == r):
+                return IdentityMatrix
+            # R * R^T = I  when R is orthogonal (SO3)
+            if (isinstance(r, Transpose) and r.expr.is_orthogonal
+                    and r.expr == l):
+                return IdentityMatrix
             return MMMul(l, r)
 
         # ---- vector * vector ----
