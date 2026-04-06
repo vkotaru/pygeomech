@@ -173,9 +173,15 @@ def vector_rules(expr):
         case Cross() if expr.left.is_zero or expr.right.is_zero:
             return ZeroVector
 
-        # S2 tangent recovery: cross(q, cross(a, q)) = a  when q unit norm, a ⊥ q
-        # This is the BAC-CAB identity: q × (a × q) = a(q·q) - q(q·a) = a when ||q||=1 and a⊥q
-        # First recurse into children so inner reductions fire before outer
+        # cross(a, s*a) = s*(a × a) = 0  and  cross(s*a, a) = 0
+        case Cross() if isinstance(expr.right, SVMul) and expr.right.left == expr.left:
+            return ZeroVector
+
+        case Cross() if isinstance(expr.left, SVMul) and expr.left.left == expr.right:
+            return ZeroVector
+
+        # S2 BAC-CAB identity with tangent orthogonality.
+        # First recurse into children so inner reductions fire before outer.
         case Cross():
             expr = Cross(vector_rules(expr.left), vector_rules(expr.right))
             reduced = _try_s2_cross_reduction(expr)

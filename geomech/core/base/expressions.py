@@ -540,7 +540,7 @@ def Number(value):
     elif isinstance(value, str):
         return Scalar(s=value, attr=["Constant"])
     else:
-        raise Exception("Input to Number should be int/float/string")
+        raise TypeError(f"Number expects int, float, or str, got {type(value).__name__}")
 
 
 def getScalars(x, attr=None):
