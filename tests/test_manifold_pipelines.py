@@ -3,6 +3,9 @@
 Tests the full pipeline: Lagrangian → variation → manifold rules →
 simplify → IBP → expand → extract → standard form for S2, SO3,
 and mixed systems.
+
+Each test class verifies the actual generated dynamics against the
+known analytical result from Lee, Leok, McClamroch (2018).
 """
 
 from geomech import (
@@ -13,6 +16,7 @@ from geomech import (
     Scalar,
     SystemVariables,
     TimeDerivative,
+    Variation,
     Vector,
     compute_eom,
     getScalars,
@@ -54,7 +58,7 @@ def _spherical_pendulum_qdot():
     KE = ½ m (v · v)  [standard Lagrangian L(q,q̇), Lee et al. §5.3.1]
 
     Internally v = l*(ω × q), so ‖v‖² = l²‖ω‖² (since ω ⊥ q, ‖q‖=1).
-    This matches the Scala reference (spherical_pendulum.scala).
+    This is the standard Lagrangian formulation from Lee et al. §5.3.1.
     """
     m, g, l = getScalars("m g l", attr=["Constant"])
     e3 = Vector("e3", attr=["Constant"])
@@ -92,8 +96,40 @@ def _rigid_body():
     return eom, variables, [M_torque], R
 
 
-def _rigid_pendulum():
-    """Rigid pendulum on SO3 with gravity."""
+def _rigid_pendulum_pivot():
+    """Rigid pendulum on SO3 — J about pivot (Lee et al. Eq 6.8).
+
+    J is the total inertia about the fixed pivot. KE = ½ Ω^T J Ω.
+    PE = mg*(R*ρ)·e3 where ρ is pivot-to-COM in body frame.
+    """
+    J = Matrix("J", attr=["Constant", "SymmetricMatrix"])
+    rho = Vector("\\rho", attr=["Constant"])
+    m, g = getScalars("m g", attr=["Constant"])
+    e3 = Vector("e3", attr=["Constant"])
+    M_torque = Vector("M")
+
+    R = SO3("R")
+    Om = R.get_tangent_vector()
+    eta = R.get_variation_vector()
+
+    half = Scalar("0.5", value=0.5, attr=["Constant"])
+    KE = Dot(Om, J * Om) * half
+    PE = m * g * Dot(R * rho, e3)
+    L = KE - PE
+    dW = Dot(eta, M_torque)
+
+    variables = SystemVariables(matrices=[R])
+    eom = compute_eom(L, dW, variables)
+    return eom, variables, [M_torque], R
+
+
+def _rigid_pendulum_com():
+    """Rigid pendulum on SO3 — J about COM (parallel axis theorem).
+
+    J is the COM inertia. Total KE = ½ Ω^T J Ω + ½ m ‖v_COM‖²
+    where v_COM = d/dt(R*ρ) = R*Hat(Ω)*ρ, so the translational term
+    contributes m*hat(ρ)² to the effective inertia about the pivot.
+    """
     J = Matrix("J", attr=["Constant", "SymmetricMatrix"])
     rho = Vector("\\rho", attr=["Constant"])
     m, g = getScalars("m g", attr=["Constant"])
@@ -117,305 +153,6 @@ def _rigid_pendulum():
     return eom, variables, [M_torque], R
 
 
-# ---------------------------------------------------------------------------
-# S2 spherical pendulum
-# ---------------------------------------------------------------------------
-
-
-class TestSphericalPendulumPipeline:
-    def setup_method(self):
-        self.eom, self.variables, self.inputs, self.q = _spherical_pendulum()
-        self.omega = self.q.get_tangent_vector()
-        self.xi = self.q.get_variation_vector()
-        self.key = list(self.eom.keys())[0]
-        _, self.eqn = self.eom[self.key]
-        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
-        self.eq = self.sf[self.key]
-
-    def test_eom_produces_one_equation(self):
-        assert len(self.eom) == 1
-
-    def test_eom_key_is_xi(self):
-        assert str(self.xi) in self.eom
-
-    def test_eom_contains_acceleration(self):
-        """EOM should contain d/dt(omega)."""
-        assert self.eqn.has(TimeDerivative(self.omega))
-
-    def test_eom_contains_gravity(self):
-        assert "e3" in str(self.eqn) or "g" in str(self.eqn)
-
-    def test_eom_exact(self):
-        """EOM should be: -ml²ω̇ - mgl(q×e3) + f = 0  (Lee et al. Eq 5.14).
-
-        Pipeline convention is M*a + f + G*u = 0, so all terms on one side.
-        Rearranged: ml²ω̇ + mgl(q×e3) = f.
-        """
-        assert hasattr(self.eqn, "nodes")
-        terms = self.eqn.nodes
-        assert len(terms) == 3, f"Expected 3 terms, got {len(terms)}: {self.eqn}"
-
-        # Classify each term by what it contains
-        has_accel = [t for t in terms if t.has(TimeDerivative(self.omega))]
-        has_gravity = [t for t in terms if t.has(self.q) and not t.has(self.omega)]
-        has_input = [t for t in terms if str(t) == "f"]
-
-        assert len(has_accel) == 1, f"Expected 1 accel term: {terms}"
-        assert len(has_gravity) == 1, f"Expected 1 gravity term: {terms}"
-        assert len(has_input) == 1, f"Expected 1 input term: {terms}"
-
-        # Accel term should contain ω̇ but not q (state-independent inertia)
-        assert not has_accel[0].has(self.q), f"Accel term should not contain q: {has_accel[0]}"
-
-        # Gravity term should contain q and e3 (Cross(q, e3))
-        assert has_gravity[0].has(self.q), f"Gravity term should contain q: {has_gravity[0]}"
-
-    def test_standard_form_M_exact(self):
-        """M should be proportional to ml² (scalar inertia on S2)."""
-        ddw = str(TimeDerivative(self.omega))
-        assert ddw in self.eq.M
-        M_str = str(self.eq.M[ddw])
-        assert "m" in M_str
-        assert "l" in M_str
-        # M should not contain q, e3, or g (those belong in f)
-        assert "q" not in M_str, f"M should not depend on q: {M_str}"
-        assert "e3" not in M_str, f"M should not contain e3: {M_str}"
-        assert "g" not in M_str, f"M should not contain g: {M_str}"
-
-    def test_standard_form_f_exact(self):
-        """f should be gravity: mgl(q × e3) (up to sign)."""
-        f_str = str(self.eq.f)
-        # Must contain gravity terms
-        assert "e3" in f_str, f"f should contain e3: {f_str}"
-        assert "g" in f_str, f"f should contain g: {f_str}"
-        assert "q" in f_str, f"f should contain q (via Cross): {f_str}"
-        # Must NOT contain ω (no Coriolis for single particle on S2)
-        assert str(self.omega) not in f_str, f"f should not contain ω: {f_str}"
-
-    def test_standard_form_G_is_identity(self):
-        """G should map f directly (identity), since δW = ξ · f."""
-        assert "f" in self.eq.G
-        G_str = str(self.eq.G["f"])
-        assert G_str == "I", f"G[f] should be identity, got: {G_str}"
-
-    def test_no_xi_dot_in_eom(self):
-        """After IBP, no d/dt(xi) should remain."""
-        assert not self.eqn.has(TimeDerivative(self.xi)), "IBP should have removed d/dt(xi)"
-
-
-# ---------------------------------------------------------------------------
-# S2 Lagrangian formulation equivalence
-# ---------------------------------------------------------------------------
-
-
-class TestS2FormulationEquivalence:
-    """Both formulations of S2 KE should produce the same EOM.
-
-    There are two natural ways to write KE for a particle on S2:
-
-      A) Angular velocity formulation (tangent space):
-         KE = ½ m l² (ω · ω)
-         Uses ω directly. This is the "modified Lagrangian" L̃(q,ω)
-         from Lee et al. §5.3.3 (p214). Built by _spherical_pendulum().
-
-      B) Configuration velocity formulation (ambient space):
-         x = l*q,  v = ẋ = l*(ω × q)
-         KE = ½ m (v · v)
-         Uses q̇ = ω × q (Eq 5.1). This is L(q,q̇) from Lee et al. §5.3.1.
-         The pipeline substitutes q̇ = ω × q and simplifies using
-         ‖ω × q‖² = ‖ω‖² (since ω ⊥ q and ‖q‖ = 1).
-         Built by _spherical_pendulum_qdot().
-
-    Both formulations should produce identical EOM after simplification.
-
-    Note on infinitesimal work: these tests use δW = ξ · f where f is
-    a force in the tangent space. The Scala reference uses δW = δq · u
-    where u is a force in R3 and δq = ξ × q. These are related by
-    f = q × u (projection to tangent space) and produce different G
-    matrices but equivalent dynamics.
-    """
-
-    def setup_method(self):
-        self.eom_A, _, _, self.q_A = _spherical_pendulum()
-        self.eom_B, _, _, self.q_B = _spherical_pendulum_qdot()
-        xi_A = self.q_A.get_variation_vector()
-        xi_B = self.q_B.get_variation_vector()
-        _, self.eqn_A = self.eom_A[str(xi_A)]
-        _, self.eqn_B = self.eom_B[str(xi_B)]
-
-    def test_omega_vs_qdot_formulation(self):
-        """L̃(q,ω) = ½ml²(ω·ω) vs L(q,q̇) = ½m(v·v) should match."""
-        terms_A = len(self.eqn_A.nodes) if hasattr(self.eqn_A, "nodes") else 1
-        terms_B = len(self.eqn_B.nodes) if hasattr(self.eqn_B, "nodes") else 1
-        assert terms_A == terms_B, (
-            f"Formulation mismatch: A has {terms_A} terms, B has {terms_B}. "
-            f"A={self.eqn_A}, B={self.eqn_B}"
-        )
-
-    def test_qdot_has_no_spurious_coriolis(self):
-        """The v = l*q̇ formulation should not produce Coriolis terms.
-
-        For a single particle on S2, the centripetal acceleration term
-        (ω × (ω × q)) that arises from d/dt(ω × q) cancels exactly
-        via the BAC-CAB identity: q × (ω × (ω × q)) = -‖ω‖²q × q = 0
-        projected onto the tangent space. So the final EOM should only
-        have: ml²ω̇ (inertia), gravity, and input — no ω-dependent
-        nonlinear terms.
-        """
-        omega = self.q_B.get_tangent_vector()
-        omega_dot = TimeDerivative(omega)
-        for n in self.eqn_B.nodes if hasattr(self.eqn_B, "nodes") else [self.eqn_B]:
-            if n.has(omega) and not n.has(omega_dot) and "e3" not in str(n) and str(n) != "f":
-                assert False, f"Unexpected Coriolis-like term: {n}"
-
-
-# ---------------------------------------------------------------------------
-# SO3 free rigid body
-# ---------------------------------------------------------------------------
-
-
-class TestFreeRigidBodyPipeline:
-    def setup_method(self):
-        self.eom, self.variables, self.inputs, self.R = _rigid_body()
-        self.Om = self.R.get_tangent_vector()
-        self.eta = self.R.get_variation_vector()
-        self.key = list(self.eom.keys())[0]
-        _, self.eqn = self.eom[self.key]
-        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
-        self.eq = self.sf[self.key]
-
-    def test_eom_produces_one_equation(self):
-        assert len(self.eom) == 1
-
-    def test_eom_key_is_eta(self):
-        assert str(self.eta) in self.eom
-
-    def test_no_eta_dot_in_eom(self):
-        """After IBP, no d/dt(eta) should remain."""
-        assert not self.eqn.has(TimeDerivative(self.eta)), "IBP should have removed d/dt(eta)"
-
-    def test_standard_form_M(self):
-        """M should contain J (Lee et al. Eq 6.16: Jω̇ + ω×Jω = M).
-
-        Note: currently M = J(-0.5) + J'(-0.5) because the simplifier
-        doesn't yet use J = J' (symmetric). This is correct but unsimplified.
-        """
-        ddOm = str(TimeDerivative(self.Om))
-        assert ddOm in self.eq.M
-        M_str = str(self.eq.M[ddOm])
-        assert "J" in M_str, f"M should contain J: {M_str}"
-        # M should not contain Omega (that belongs in f)
-        assert str(self.Om) not in M_str, f"M should not contain Ω: {M_str}"
-        # M should not contain gravity or position
-        assert "e3" not in M_str
-        assert "g" not in M_str
-
-    def test_standard_form_f(self):
-        """f should be the Coriolis term ω×Jω (Lee et al. Eq 6.16).
-
-        For a free rigid body with no gravity, f contains only
-        the gyroscopic/Coriolis coupling.
-        """
-        f_str = str(self.eq.f)
-        # f must contain Omega and J (Coriolis: ω×Jω)
-        assert str(self.Om) in f_str, f"f should contain Ω: {f_str}"
-        assert "J" in f_str, f"f should contain J: {f_str}"
-        # f should NOT contain acceleration
-        assert str(TimeDerivative(self.Om)) not in f_str, f"f should not contain ω̇: {f_str}"
-        # f should NOT contain gravity (no gravity in free rigid body)
-        assert "e3" not in f_str, f"f should not contain gravity: {f_str}"
-
-    def test_standard_form_G(self):
-        """G maps torque M directly (identity), since δW = η · M."""
-        assert "M" in self.eq.G
-        G_str = str(self.eq.G["M"])
-        assert G_str == "I", f"G[M] should be identity, got: {G_str}"
-
-
-# ---------------------------------------------------------------------------
-# SO3 rigid pendulum (with translational KE and gravity)
-# ---------------------------------------------------------------------------
-
-
-class TestRigidPendulumPipeline:
-    def setup_method(self):
-        self.eom, self.variables, self.inputs, self.R = _rigid_pendulum()
-        self.Om = self.R.get_tangent_vector()
-        self.eta = self.R.get_variation_vector()
-        self.key = list(self.eom.keys())[0]
-        _, self.eqn = self.eom[self.key]
-        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
-        self.eq = self.sf[self.key]
-
-    def test_eom_produces_one_equation(self):
-        assert len(self.eom) == 1
-
-    def test_no_eta_dot_in_eom(self):
-        """After IBP, no d/dt(eta) should remain."""
-        assert not self.eqn.has(TimeDerivative(self.eta)), "IBP should have removed d/dt(eta)"
-
-    def test_standard_form_M(self):
-        """M should contain J (rotational) and ρ (translational inertia).
-
-        The rigid pendulum inertia matrix is J + m*hat(ρ)^T*hat(ρ)
-        (Lee et al. Eq 6.8 with offset mass).
-        """
-        ddOm = str(TimeDerivative(self.Om))
-        assert ddOm in self.eq.M
-        M_str = str(self.eq.M[ddOm])
-        assert "J" in M_str, f"M should contain J: {M_str}"
-        assert "\\rho" in M_str, f"M should contain ρ: {M_str}"
-        assert "m" in M_str, f"M should contain m: {M_str}"
-        # M should not contain Omega, gravity, or input
-        assert str(self.Om) not in M_str, f"M should not contain Ω: {M_str}"
-
-    def test_standard_form_f(self):
-        """f should contain Coriolis (ω×Jω) and gravity (mg cross term)."""
-        f_str = str(self.eq.f)
-        # Must have Coriolis (Omega and J)
-        assert str(self.Om) in f_str, f"f should contain Ω (Coriolis): {f_str}"
-        assert "J" in f_str, f"f should contain J (Coriolis): {f_str}"
-        # Must have gravity
-        assert "e3" in f_str, f"f should contain e3 (gravity): {f_str}"
-        assert "g" in f_str, f"f should contain g (gravity): {f_str}"
-        # f should NOT contain acceleration
-        assert str(TimeDerivative(self.Om)) not in f_str, f"f should not contain ω̇: {f_str}"
-
-    def test_standard_form_G(self):
-        """G maps torque M directly (identity)."""
-        assert "M" in self.eq.G
-        G_str = str(self.eq.G["M"])
-        assert G_str == "I", f"G[M] should be identity, got: {G_str}"
-
-
-# ---------------------------------------------------------------------------
-# Variation vector should not appear in EOM body
-# ---------------------------------------------------------------------------
-
-
-class TestVariationVectorExtracted:
-    def test_s2_xi_not_in_eom_body(self):
-        """ξ should only be the key, not appear inside the equation."""
-        eom, _, _, q = _spherical_pendulum()
-        xi = q.get_variation_vector()
-        key = list(eom.keys())[0]
-        _, eqn = eom[key]
-        assert not eqn.has(xi), f"ξ should be factored out of EOM body: {eqn}"
-
-    def test_so3_eta_not_in_eom_body(self):
-        """η should only be the key, not appear inside the equation."""
-        eom, _, _, R = _rigid_body()
-        eta = R.get_variation_vector()
-        key = list(eom.keys())[0]
-        _, eqn = eom[key]
-        assert not eqn.has(eta), f"η should be factored out of EOM body: {eqn}"
-
-
-# ---------------------------------------------------------------------------
-# Double rigid pendulum (SO3 × SO3)
-# ---------------------------------------------------------------------------
-
-
 def _double_rigid_pendulum():
     """Double rigid pendulum on SO3 × SO3."""
     J1 = Matrix("J1", attr=["Constant", "SymmetricMatrix"])
@@ -437,15 +174,11 @@ def _double_rigid_pendulum():
 
     half = Scalar("0.5", value=0.5, attr=["Constant"])
 
-    # Positions
     x1 = R1 * rho1
     x2 = R1 * l1 + R2 * rho2
-
-    # Velocities
     v1 = x1.t_diff()
     v2 = x2.t_diff()
 
-    # Lagrangian
     KE = (
         Dot(Om1, J1 * Om1) * half
         + Dot(Om2, J2 * Om2) * half
@@ -459,62 +192,6 @@ def _double_rigid_pendulum():
     variables = SystemVariables(matrices=[R1, R2])
     eom = compute_eom(L, dW, variables)
     return eom, variables, [M1, M2], R1, R2
-
-
-class TestDoubleRigidPendulumPipeline:
-    def test_eom_produces_two_equations(self):
-        eom, _, _, R1, R2 = _double_rigid_pendulum()
-        assert len(eom) == 2
-
-    def test_eom_keys_are_eta1_eta2(self):
-        eom, _, _, R1, R2 = _double_rigid_pendulum()
-        eta1 = R1.get_variation_vector()
-        eta2 = R2.get_variation_vector()
-        assert str(eta1) in eom
-        assert str(eta2) in eom
-
-    def test_eom_contains_both_accelerations(self):
-        eom, _, _, R1, R2 = _double_rigid_pendulum()
-        Om1 = R1.get_tangent_vector()
-        Om2 = R2.get_tangent_vector()
-        all_eqn_str = " ".join(str(eqn) for _, eqn in eom.values())
-        assert str(TimeDerivative(Om1)) in all_eqn_str
-        assert str(TimeDerivative(Om2)) in all_eqn_str
-
-    def test_no_variation_dots_in_eom(self):
-        """After IBP, no d/dt(η₁) or d/dt(η₂) should remain."""
-        eom, _, _, R1, R2 = _double_rigid_pendulum()
-        eta1 = R1.get_variation_vector()
-        eta2 = R2.get_variation_vector()
-        for key, (_, eqn) in eom.items():
-            assert not eqn.has(TimeDerivative(eta1)), f"d/dt(η₁) in {key}"
-            assert not eqn.has(TimeDerivative(eta2)), f"d/dt(η₂) in {key}"
-
-    def test_standard_form_has_two_equations(self):
-        eom, variables, inputs, R1, R2 = _double_rigid_pendulum()
-        sf = to_standard_form(eom, variables, inputs)
-        assert len(sf) == 2
-
-    def test_standard_form_M_has_cross_coupling(self):
-        """Double pendulum M matrix should have cross-coupling terms."""
-        eom, variables, inputs, R1, R2 = _double_rigid_pendulum()
-        sf = to_standard_form(eom, variables, inputs)
-        Om1 = R1.get_tangent_vector()
-        Om2 = R2.get_tangent_vector()
-        ddOm1 = str(TimeDerivative(Om1))
-        ddOm2 = str(TimeDerivative(Om2))
-        for key, eq in sf.items():
-            if ddOm1 in eq.M and ddOm2 in eq.M:
-                return
-        all_M_keys = set()
-        for eq in sf.values():
-            all_M_keys.update(eq.M.keys())
-        assert ddOm1 in all_M_keys and ddOm2 in all_M_keys
-
-
-# ---------------------------------------------------------------------------
-# Mixed R3 + SO3 system (quadrotor-like)
-# ---------------------------------------------------------------------------
 
 
 def _simple_se3_system():
@@ -540,6 +217,358 @@ def _simple_se3_system():
     return eom, variables, [F, M_torque], x, R
 
 
+# ---------------------------------------------------------------------------
+# S2 spherical pendulum — Lee et al. Eq 5.14
+#
+# Expected: ml²ω̇ + mgl(q × e3) = f
+# Pipeline convention (all on one side): -ml²ω̇ - mgl(q×e3) + f = 0
+# ---------------------------------------------------------------------------
+
+
+class TestSphericalPendulumPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.q = _spherical_pendulum()
+        self.omega = self.q.get_tangent_vector()
+        self.xi = self.q.get_variation_vector()
+        self.key = list(self.eom.keys())[0]
+        _, self.eqn = self.eom[self.key]
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+        self.eq = self.sf[self.key]
+
+    def test_eom_key_is_xi(self):
+        assert str(self.xi) in self.eom
+
+    def test_eom_str(self):
+        """Full EOM string: d/dt(ω)*(-1)*m*l*l + Cross(q,e3)*m*g*l*(-1) + f"""
+        expected = "\\frac{d}{dt}(\\omega_{q})(-1)mll+Cross(q,e3)mgl(-1)+f"
+        assert str(self.eqn) == f"({expected})"
+
+    def test_M(self):
+        """M[ω̇] = I*(-1)*m*l*l  (= -ml² I)"""
+        ddw = str(TimeDerivative(self.omega))
+        assert ddw in self.eq.M
+        assert str(self.eq.M[ddw]) == "I(-1)mll"
+
+    def test_f(self):
+        """f = Cross(q,e3)*m*g*l*(-1)  (= -mgl q×e3)"""
+        assert str(self.eq.f) == "Cross(q,e3)mgl(-1)"
+
+    def test_G(self):
+        """G[f] = I  (direct tangent-space force)"""
+        assert str(self.eq.G["f"]) == "I"
+
+    def test_no_xi_dot_in_eom(self):
+        assert not self.eqn.has(TimeDerivative(self.xi))
+
+    def test_xi_not_in_eom_body(self):
+        assert not self.eqn.has(self.xi)
+
+
+# ---------------------------------------------------------------------------
+# S2 formulation equivalence — ω·ω vs v·v
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# S2 spherical pendulum — qdot formulation (Lee et al. §5.3.1)
+#
+# KE = ½m‖v‖² with v = d/dt(l*q) = l*(ω×q)
+#
+# Expected EOM (Lee et al. Eq 5.7):
+#   (I - qq^T){ml²ω̇ + mgl(q×e3)} = f
+# which is equivalent to the ω formulation on the tangent space.
+#
+# Pipeline output:
+#   Cross(q, Cross(d/dt(ω), q))*(-1)*l*l*m + Cross(q,e3)*m*g*l*(-1) + f
+#
+# The accel term is q×(ω̇×q) = (I-qq^T)ω̇ (projection), which equals
+# ω̇ when ω̇ ⊥ q. This doesn't simplify further without the constraint
+# system (issue #3).
+#
+# Standard form:
+#   M[ω̇] = Hat(q)*Hat(q)*l*l*m = ml²*(qq^T - I) = -ml²*(I - qq^T)
+#   f = Cross(q,e3)*m*g*l*(-1)  (same as ω formulation)
+#   G[f] = I
+# ---------------------------------------------------------------------------
+
+
+class TestSphericalPendulumQdotPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.q = _spherical_pendulum_qdot()
+        self.omega = self.q.get_tangent_vector()
+        self.xi = self.q.get_variation_vector()
+        self.key = list(self.eom.keys())[0]
+        _, self.eqn = self.eom[self.key]
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+        self.eq = self.sf[self.key]
+
+    def test_eom_str(self):
+        """EOM: Cross(q, Cross(ω̇, q))*(-1)*l*l*m + Cross(q,e3)*mgl*(-1) + f"""
+        expected = "Cross(q,Cross(\\frac{d}{dt}(\\omega_{q}),q))(-1)llm+Cross(q,e3)mgl(-1)+f"
+        assert str(self.eqn) == f"({expected})"
+
+    def test_eom_has_three_terms(self):
+        assert len(self.eqn.nodes) == 3
+
+    def test_M(self):
+        """M[ω̇] = Hat(q)*Hat(q)*l*l*m  (= ml²(qq^T - I), the S2 projection)."""
+        ddw = str(TimeDerivative(self.omega))
+        assert ddw in self.eq.M
+        assert str(self.eq.M[ddw]) == "Hat(q)Hat(q)llm"
+
+    def test_f_same_as_omega_formulation(self):
+        """f should be identical to the ω formulation: Cross(q,e3)*mgl*(-1)."""
+        assert str(self.eq.f) == "Cross(q,e3)mgl(-1)"
+
+    def test_G(self):
+        assert str(self.eq.G["f"]) == "I"
+
+    def test_no_xi_dot_in_eom(self):
+        assert not self.eqn.has(TimeDerivative(self.xi))
+
+    def test_no_spurious_coriolis(self):
+        """No ω-dependent nonlinear terms (centripetal cancels for single S2 particle)."""
+        omega_dot = TimeDerivative(self.omega)
+        for n in self.eqn.nodes:
+            if n.has(self.omega) and not n.has(omega_dot) and "e3" not in str(n) and str(n) != "f":
+                assert False, f"Unexpected Coriolis-like term: {n}"
+
+
+# ---------------------------------------------------------------------------
+# SO3 free rigid body — Lee et al. Eq 6.16: Jω̇ + ω×Jω = M
+#
+# Pipeline output: -J*ω̇ - Cross(Ω, J*Ω) + M = 0
+# (J' = J since J is symmetric, so J*(-0.5) + J'*(-0.5) = J*(-1))
+# ---------------------------------------------------------------------------
+
+
+class TestFreeRigidBodyPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.R = _rigid_body()
+        self.Om = self.R.get_tangent_vector()
+        self.eta = self.R.get_variation_vector()
+        self.key = list(self.eom.keys())[0]
+        _, self.eqn = self.eom[self.key]
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+        self.eq = self.sf[self.key]
+
+    def test_eom_key_is_eta(self):
+        assert str(self.eta) in self.eom
+
+    def test_eom_str(self):
+        """EOM: -J*ω̇ - ω×Jω + M = 0"""
+        expected = "J\\frac{d}{dt}(\\Omega_{R})(-1.0)+Cross(\\Omega_{R},J\\Omega_{R})(-1)+M"
+        assert str(self.eqn) == f"({expected})"
+
+    def test_M(self):
+        """M[Ω̇] = J*(-1)  (= -J, the inertia matrix)."""
+        ddOm = str(TimeDerivative(self.Om))
+        assert ddOm in self.eq.M
+        assert str(self.eq.M[ddOm]) == "J(-1.0)"
+
+    def test_f(self):
+        """f = Cross(Ω, JΩ)*(-1)  (= -ω×Jω, the Coriolis term)."""
+        assert str(self.eq.f) == "Cross(\\Omega_{R},J\\Omega_{R})(-1)"
+
+    def test_G(self):
+        """G[M] = I  (direct torque input)."""
+        assert str(self.eq.G["M"]) == "I"
+
+    def test_no_eta_dot_in_eom(self):
+        assert not self.eqn.has(TimeDerivative(self.eta))
+
+    def test_eta_not_in_eom_body(self):
+        assert not self.eqn.has(self.eta)
+
+
+# ---------------------------------------------------------------------------
+# SO3 rigid pendulum — J about pivot (Lee et al. Eq 6.8)
+#
+# KE = ½ Ω^T J Ω,  PE = mg(Rρ)·e3
+# Expected: Jω̇ + ω×Jω + mg*ρ×(R^T e3) = M
+# Pipeline (all on LHS): -Jω̇ - ω×Jω - mg*ρ×(R^T e3) + M = 0
+# ---------------------------------------------------------------------------
+
+
+class TestRigidPendulumPivotPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.R = _rigid_pendulum_pivot()
+        self.Om = self.R.get_tangent_vector()
+        self.eta = self.R.get_variation_vector()
+        self.key = list(self.eom.keys())[0]
+        _, self.eqn = self.eom[self.key]
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+        self.eq = self.sf[self.key]
+
+    def test_eom_str(self):
+        """EOM: -Jω̇ - ω×Jω - mg*ρ×(R^T e3) + M = 0"""
+        expected = (
+            "J\\frac{d}{dt}(\\Omega_{R})(-1.0)"
+            "+Cross(\\Omega_{R},J\\Omega_{R})(-1)"
+            "+Cross(\\rho,(R)'e3)mg(-1)"
+            "+M"
+        )
+        assert str(self.eqn) == f"({expected})"
+
+    def test_M(self):
+        """M[Ω̇] = -J  (same inertia as free rigid body)."""
+        ddOm = str(TimeDerivative(self.Om))
+        assert ddOm in self.eq.M
+        assert str(self.eq.M[ddOm]) == "J(-1.0)"
+
+    def test_f(self):
+        """f = -ω×Jω - mg*ρ×(R^T e3).  Two terms: Coriolis + gravity."""
+        f = self.eq.f
+        assert hasattr(f, "nodes")
+        assert len(f.nodes) == 2, f"Expected 2 terms, got {len(f.nodes)}: {f}"
+        f_str = str(f)
+        assert "Cross(\\Omega_{R},J\\Omega_{R})(-1)" in f_str
+        assert "Cross(\\rho,(R)'e3)mg(-1)" in f_str
+
+    def test_G(self):
+        assert str(self.eq.G["M"]) == "I"
+
+    def test_no_eta_dot(self):
+        assert not self.eqn.has(TimeDerivative(self.eta))
+
+
+# ---------------------------------------------------------------------------
+# SO3 rigid pendulum — J about COM (parallel axis theorem)
+#
+# KE = ½ Ω^T J Ω + ½ m ‖v‖²,  v = d/dt(R*ρ)
+# Effective inertia: J_eff = J + m*hat(ρ)²
+# Expected: (J + m*hat(ρ)²)ω̇ + ω×Jω + m*ω×(ρ×(ω×ρ)) + mg*ρ×(R^T e3) = M
+# ---------------------------------------------------------------------------
+
+
+class TestRigidPendulumCOMPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.R = _rigid_pendulum_com()
+        self.Om = self.R.get_tangent_vector()
+        self.eta = self.R.get_variation_vector()
+        self.key = list(self.eom.keys())[0]
+        _, self.eqn = self.eom[self.key]
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+        self.eq = self.sf[self.key]
+
+    def test_eom_str(self):
+        """EOM: -Jω̇ - ω×Jω - m*ρ×(ω̇×ρ) - m*ω×(ρ×(ω×ρ)) - mg*ρ×(R^T e3) + M = 0
+
+        The Jω̇ and m*ρ×(ω̇×ρ) terms combine in standard form as
+        M = -(J + m*hat(ρ)²), since ρ×(ω̇×ρ) = -hat(ρ)²*ω̇.
+        """
+        expected = (
+            "J\\frac{d}{dt}(\\Omega_{R})(-1.0)"
+            "+Cross(\\Omega_{R},J\\Omega_{R})(-1)"
+            "+Cross(\\rho,Cross(\\frac{d}{dt}(\\Omega_{R}),\\rho))(-1)m"
+            "+Cross(\\Omega_{R},Cross(\\rho,Cross(\\Omega_{R},\\rho)))(-1)m"
+            "+Cross(\\rho,(R)'e3)mg(-1)"
+            "+M"
+        )
+        assert str(self.eqn) == f"({expected})"
+
+    def test_M(self):
+        """M = -(J + m*hat(ρ)²)  (COM inertia + parallel axis)."""
+        ddOm = str(TimeDerivative(self.Om))
+        assert ddOm in self.eq.M
+        assert str(self.eq.M[ddOm]) == "(J(-1.0)+Hat(\\rho)Hat(\\rho)m)"
+
+    def test_f_has_three_terms(self):
+        """f has Coriolis + centripetal + gravity (3 terms)."""
+        f = self.eq.f
+        assert hasattr(f, "nodes")
+        assert len(f.nodes) == 3, f"Expected 3 terms, got {len(f.nodes)}: {f}"
+
+    def test_f_no_R_transpose_R(self):
+        """R^T*R should have simplified to I."""
+        assert "(R)'R" not in str(self.eq.f)
+
+    def test_f_no_acceleration(self):
+        assert str(TimeDerivative(self.Om)) not in str(self.eq.f)
+
+    def test_G(self):
+        assert str(self.eq.G["M"]) == "I"
+
+
+# ---------------------------------------------------------------------------
+# SO3 × SO3 double rigid pendulum
+# ---------------------------------------------------------------------------
+
+
+class TestDoubleRigidPendulumPipeline:
+    def setup_method(self):
+        self.eom, self.variables, self.inputs, self.R1, self.R2 = _double_rigid_pendulum()
+        self.Om1 = self.R1.get_tangent_vector()
+        self.Om2 = self.R2.get_tangent_vector()
+        self.eta1 = self.R1.get_variation_vector()
+        self.eta2 = self.R2.get_variation_vector()
+        self.sf = to_standard_form(self.eom, self.variables, self.inputs)
+
+    def test_produces_two_equations(self):
+        assert len(self.eom) == 2
+
+    def test_keys_are_eta1_eta2(self):
+        assert str(self.eta1) in self.eom
+        assert str(self.eta2) in self.eom
+
+    def test_no_variation_dots(self):
+        """After IBP, no d/dt(η₁) or d/dt(η₂) should remain."""
+        for key, (_, eqn) in self.eom.items():
+            assert not eqn.has(TimeDerivative(self.eta1)), f"d/dt(η₁) in {key}"
+            assert not eqn.has(TimeDerivative(self.eta2)), f"d/dt(η₂) in {key}"
+
+    def test_eta1_equation_M(self):
+        """η₁ equation M should contain J1, ρ₁, l₁, m1, m2."""
+        eq = self.sf[str(self.eta1)]
+        ddOm1 = str(TimeDerivative(self.Om1))
+        assert ddOm1 in eq.M
+        M_str = str(eq.M[ddOm1])
+        assert "J1" in M_str, f"M should contain J1: {M_str}"
+        assert "\\rho_1" in M_str, f"M should contain ρ₁: {M_str}"
+        assert "l_1" in M_str, f"M should contain l₁: {M_str}"
+        assert "m1" in M_str, f"M should contain m1: {M_str}"
+        assert "m2" in M_str, f"M should contain m2: {M_str}"
+
+    def test_eta2_equation_M(self):
+        """η₂ equation M should contain J2, ρ₂, m2."""
+        eq = self.sf[str(self.eta2)]
+        ddOm2 = str(TimeDerivative(self.Om2))
+        assert ddOm2 in eq.M
+        M_str = str(eq.M[ddOm2])
+        assert "J2" in M_str, f"M should contain J2: {M_str}"
+        assert "\\rho_2" in M_str, f"M should contain ρ₂: {M_str}"
+        assert "m2" in M_str, f"M should contain m2: {M_str}"
+
+    def test_eta1_f_has_gravity(self):
+        eq = self.sf[str(self.eta1)]
+        f_str = str(eq.f)
+        assert "e3" in f_str, f"f should contain gravity: {f_str}"
+        assert "g" in f_str, f"f should contain g: {f_str}"
+
+    def test_eta2_f_has_gravity(self):
+        eq = self.sf[str(self.eta2)]
+        f_str = str(eq.f)
+        assert "e3" in f_str, f"f should contain gravity: {f_str}"
+        assert "g" in f_str, f"f should contain g: {f_str}"
+
+    def test_G_maps_torques_independently(self):
+        """Each equation's G should map only its own torque."""
+        eq1 = self.sf[str(self.eta1)]
+        eq2 = self.sf[str(self.eta2)]
+        assert "M1" in eq1.G and str(eq1.G["M1"]) == "I"
+        assert "M2" in eq2.G and str(eq2.G["M2"]) == "I"
+
+    def test_standard_form_has_two_equations(self):
+        assert len(self.sf) == 2
+
+
+# ---------------------------------------------------------------------------
+# R3 × SO3 mixed system (uncoupled point mass + rigid body)
+#
+# Translational: mẍ = F  (Newton)
+# Rotational:    Jω̇ + ω×Jω = M  (Euler)
+# ---------------------------------------------------------------------------
+
+
 class TestMixedR3SO3Pipeline:
     def setup_method(self):
         self.eom, self.variables, self.inputs, self.x, self.R = _simple_se3_system()
@@ -547,30 +576,27 @@ class TestMixedR3SO3Pipeline:
         self.eta = self.R.get_variation_vector()
         self.sf = to_standard_form(self.eom, self.variables, self.inputs)
 
-    def test_eom_produces_two_equations(self):
-        """R3 + SO3 should produce one equation per DOF group."""
+    def test_produces_two_equations(self):
         assert len(self.eom) == 2
 
-    def test_eom_keys(self):
-        keys = set(self.eom.keys())
-        assert str(self.x.delta()) in keys or "\\delta{x}" in keys
-        assert str(self.eta) in keys
-
-    def test_translational_eom_is_newton(self):
-        """Translational EOM should be m*ẍ = F (Newton's law)."""
+    def test_translational_eom(self):
+        """Translational: mẍ = F → M[ẍ] = -m*I, f = 0, G[F] = I."""
+        key = str(Variation(self.x))
+        assert key in self.sf
+        eq = self.sf[key]
         ddx = str(TimeDerivative(TimeDerivative(self.x)))
-        for key, eq in self.sf.items():
-            if ddx in eq.M:
-                M_str = str(eq.M[ddx])
-                assert "m" in M_str, f"Newton's law: M should contain m: {M_str}"
-                return
-        assert False, "No translational equation found with ẍ"
+        assert ddx in eq.M
+        assert str(eq.M[ddx]) == "I(-1)m"
+        assert str(eq.f) == "0v"
+        assert str(eq.G["F"]) == "I"
 
-    def test_rotational_eom_is_euler(self):
-        """Rotational EOM should be J*Ω̇ + ω×Jω = M."""
+    def test_rotational_eom(self):
+        """Rotational: Jω̇ + ω×Jω = M → same as free rigid body."""
+        key = str(self.eta)
+        assert key in self.sf
+        eq = self.sf[key]
         ddOm = str(TimeDerivative(self.Om))
-        for key, eq in self.sf.items():
-            if ddOm in eq.M:
-                assert "J" in str(eq.M[ddOm])
-                return
-        assert False, "No rotational equation found with Ω̇"
+        assert ddOm in eq.M
+        M_str = str(eq.M[ddOm])
+        assert "J" in M_str
+        assert str(eq.G["M"]) == "I"

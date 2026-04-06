@@ -112,6 +112,12 @@ def _eliminate(expr):
             # (A * B) * v → A * (B * v)  (matrix associativity)
             if isinstance(mat, MMMul):
                 return _eliminate(MVMul(mat.left, MVMul(mat.right, vec)))
+            # A * (B * v) → (A*B) * v  when A*B simplifies (e.g. R'*R = I)
+            if isinstance(vec, MVMul):
+                combined = _eliminate(MMMul(mat, vec.left))
+                if not isinstance(combined, MMMul):
+                    # A*B simplified (e.g. to I), so use the result
+                    return _eliminate(MVMul(combined, vec.right))
             return MVMul(mat, vec)
 
         # ---- matrix * matrix ----
@@ -172,6 +178,9 @@ def _eliminate(expr):
             inner = _eliminate(expr.expr)
             if isinstance(inner, Transpose):
                 return inner.expr
+            # Symmetric matrix: J^T = J
+            if inner.is_symmetric:
+                return inner
             # Hat is skew-symmetric: Hat(v)^T = -Hat(v)
             if isinstance(inner, Hat):
                 return SMMul(inner, Scalar("(-1)", value=-1, attr=["Constant"]))
