@@ -13,6 +13,7 @@ class SystemVariables:
     vectors:  vector configuration variables (Vector, S2)
     matrices: matrix configuration variables (SO3)
     """
+
     scalars: list = field(default_factory=list)
     vectors: list = field(default_factory=list)
     matrices: list = field(default_factory=list)

@@ -3,10 +3,10 @@ from __future__ import annotations
 from geomech.core.base.types import ExprType
 from geomech.utils.errors import ExpressionMismatchError, UndefinedCaseError
 
-
 # ---------------------------------------------------------------------------
 # Base — shared by all operation nodes
 # ---------------------------------------------------------------------------
+
 
 class _BaseMixin:
     """Shared base for all operation nodes."""
@@ -26,7 +26,8 @@ class _BaseMixin:
     # ------ arithmetic dispatch (centralised for all operation nodes) ------
 
     def __add__(self, other):
-        from geomech.core.operations.addition import Add, VAdd, MAdd
+        from geomech.core.operations.addition import Add, MAdd, VAdd
+
         match self.type:
             case ExprType.SCALAR:
                 return Add(self, other)
@@ -41,29 +42,37 @@ class _BaseMixin:
         return self.__add__(other)
 
     def __sub__(self, other):
-        from geomech.core.operations.addition import Add, VAdd, MAdd
-        from geomech.core.operations.multiplication import Mul, SVMul, SMMul
+        from geomech.core.operations.addition import Add, MAdd, VAdd
+        from geomech.core.operations.multiplication import Mul, SMMul, SVMul
+
         match self.type:
             case ExprType.SCALAR:
                 if other.type != ExprType.SCALAR:
-                    raise ExpressionMismatchError('Sub', self.type, other.type)
+                    raise ExpressionMismatchError("Sub", self.type, other.type)
                 return Add(self, Mul(other, -1))
             case ExprType.VECTOR:
                 if other.type != ExprType.VECTOR:
-                    raise ExpressionMismatchError('Sub', self.type, other.type)
+                    raise ExpressionMismatchError("Sub", self.type, other.type)
                 return VAdd(self, SVMul(other, -1))
             case ExprType.MATRIX:
                 if other.type != ExprType.MATRIX:
-                    raise ExpressionMismatchError('Sub', self.type, other.type)
+                    raise ExpressionMismatchError("Sub", self.type, other.type)
                 return MAdd(self, SMMul(other, -1))
             case _:
                 raise UndefinedCaseError
 
     def __mul__(self, other):
-        from geomech.core.operations.multiplication import (
-            Mul, SVMul, SMMul, VVMul, MVMul, MMMul, _wrap_numeric,
-        )
         from geomech.core.operations.geometry import Transpose
+        from geomech.core.operations.multiplication import (
+            MMMul,
+            Mul,
+            MVMul,
+            SMMul,
+            SVMul,
+            VVMul,
+            _wrap_numeric,
+        )
+
         other = _wrap_numeric(other)
         match (self.type, other.type):
             case (ExprType.SCALAR, ExprType.SCALAR):
@@ -83,7 +92,7 @@ class _BaseMixin:
             case (ExprType.MATRIX, ExprType.VECTOR):
                 if isinstance(other, Transpose):
                     raise ExpressionMismatchError(
-                        type(self).__name__ + '.__mul__', self.type, other.type
+                        type(self).__name__ + ".__mul__", self.type, other.type
                     )
                 return MVMul(self, other)
             case (ExprType.MATRIX, ExprType.MATRIX):
@@ -95,6 +104,7 @@ class _BaseMixin:
 # ---------------------------------------------------------------------------
 # N-ary (addition)
 # ---------------------------------------------------------------------------
+
 
 class _NaryMixin(_BaseMixin):
     """Shared properties for n-ary addition operations."""
@@ -108,30 +118,39 @@ class _NaryMixin(_BaseMixin):
         return all(n.is_zero for n in self.nodes)
 
     def __str__(self):
-        return '(' + '+'.join(str(n) for n in self.nodes) + ')'
+        return "(" + "+".join(str(n) for n in self.nodes) + ")"
 
     def delta(self):
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         return type(self)(*[n.delta() for n in self.nodes])
 
     def t_diff(self):
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         return type(self)(*[n.t_diff() for n in self.nodes])
 
 
 # ---------------------------------------------------------------------------
 # Binary (multiplication)
 # ---------------------------------------------------------------------------
+
 
 class _BinaryMixin(_BaseMixin):
     """Shared properties for binary operations using unified nodes."""
@@ -157,12 +176,16 @@ class _BinaryMixin(_BaseMixin):
 
         op_name: 'delta' or 't_diff'
         """
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         op = lambda node: getattr(node, op_name)()
         if self.left.is_constant:
             return type(self)(self.left, op(self.right))
@@ -171,22 +194,27 @@ class _BinaryMixin(_BaseMixin):
         # Product rule: op(l*r) = op(l)*r + l*op(r)
         term1 = type(self)(op(self.left), self.right)
         term2 = type(self)(self.left, op(self.right))
-        from geomech.core.operations.addition import Add, VAdd, MAdd
+        from geomech.core.operations.addition import Add, MAdd, VAdd
+
         match self.type:
-            case ExprType.SCALAR: return Add(term1, term2)
-            case ExprType.VECTOR: return VAdd(term1, term2)
-            case ExprType.MATRIX: return MAdd(term1, term2)
+            case ExprType.SCALAR:
+                return Add(term1, term2)
+            case ExprType.VECTOR:
+                return VAdd(term1, term2)
+            case ExprType.MATRIX:
+                return MAdd(term1, term2)
 
     def delta(self):
-        return self._apply_rule('delta')
+        return self._apply_rule("delta")
 
     def t_diff(self):
-        return self._apply_rule('t_diff')
+        return self._apply_rule("t_diff")
 
 
 # ---------------------------------------------------------------------------
 # Unary (fixed output type — Hat, Vee, etc.)
 # ---------------------------------------------------------------------------
+
 
 class _UnaryMixin(_BaseMixin):
     """Shared properties for unary operation nodes with fixed output type."""
@@ -204,27 +232,36 @@ class _UnaryMixin(_BaseMixin):
         return self.expr.is_zero
 
     def delta(self):
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         return type(self)(self.expr.delta())
 
     def t_diff(self):
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         return type(self)(self.expr.t_diff())
 
 
 # ---------------------------------------------------------------------------
 # Calculus unary (Variation, TimeDerivative, TimeIntegral, Delta)
 # ---------------------------------------------------------------------------
+
 
 class _CalcUnaryMixin(_UnaryMixin):
     """Type-preserving unary — delegates type to inner expression.
@@ -239,10 +276,14 @@ class _CalcUnaryMixin(_UnaryMixin):
         return self.expr.type
 
     def t_integrate(self):
-        from geomech.core.base.expressions import Zero, ZeroVector, ZeroMatrix
+        from geomech.core.base.expressions import Zero, ZeroMatrix, ZeroVector
+
         if self.is_constant:
             match self.type:
-                case ExprType.SCALAR: return Zero
-                case ExprType.VECTOR: return ZeroVector
-                case ExprType.MATRIX: return ZeroMatrix
+                case ExprType.SCALAR:
+                    return Zero
+                case ExprType.VECTOR:
+                    return ZeroVector
+                case ExprType.MATRIX:
+                    return ZeroMatrix
         return type(self)(self.expr.t_integrate())

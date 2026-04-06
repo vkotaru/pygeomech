@@ -3,42 +3,51 @@
 import pytest
 
 from geomech.core.base.expressions import (
-    Scalar, Vector, Matrix, Zero, ZeroVector, ZeroMatrix,
+    Matrix,
+    Scalar,
+    Vector,
 )
-from geomech.core.operations.addition import Add, VAdd, MAdd
-from geomech.core.operations.multiplication import (
-    Mul, SVMul, SMMul, MVMul, MMMul,
-)
-from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
 from geomech.core.math.extract import (
-    extract_coeff, extract_from_scalar, extract_from_vector, extract_from_matrix,
+    extract_coeff,
+    extract_from_matrix,
+    extract_from_scalar,
+    extract_from_vector,
 )
-
+from geomech.core.operations.addition import Add, MAdd, VAdd
+from geomech.core.operations.geometry import Cross, Dot, Hat, Transpose
+from geomech.core.operations.multiplication import (
+    MMMul,
+    Mul,
+    MVMul,
+    SMMul,
+    SVMul,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def scalars():
-    a = Scalar('a')
-    b = Scalar('b')
-    c = Scalar('c', value=3, attr=['Constant'])
+    a = Scalar("a")
+    b = Scalar("b")
+    c = Scalar("c", value=3, attr=["Constant"])
     return a, b, c
 
 
 @pytest.fixture
 def vectors():
-    v = Vector('v')
-    w = Vector('w')
-    u = Vector('u')
+    v = Vector("v")
+    w = Vector("w")
+    u = Vector("u")
     return v, w, u
 
 
 @pytest.fixture
 def matrices():
-    M = Matrix('M')
-    N = Matrix('N')
+    M = Matrix("M")
+    N = Matrix("N")
     return M, N
 
 
@@ -46,8 +55,9 @@ def matrices():
 # extract_coeff dispatch
 # ===========================================================================
 
+
 class TestExtractCoeffDispatch:
-    """extract_coeff routes to extract_from_scalar/extract_from_vector/extract_from_matrix based on expr.type."""
+    """extract_coeff routes to the right extractor based on expr.type."""
 
     def test_scalar_dispatches_to_extract_from_scalar(self, vectors):
         """Scalar expression dispatches to extract_from_scalar."""
@@ -76,13 +86,14 @@ class TestExtractCoeffDispatch:
 # extract_from_scalar — Extract From Scalar
 # ===========================================================================
 
+
 class TestExtractFromScalarAdd:
     """extract_from_scalar through scalar addition."""
 
     def test_single_dot_in_add(self, vectors):
         """Add with one term containing vec extracts that term only."""
         v, w, u = vectors
-        a = Scalar('a')
+        a = Scalar("a")
         # Dot(v, w) + a  →  extract_from_scalar extracts from Dot(v, w) only
         expr = Add(Dot(v, w), a)
         result = extract_from_scalar(expr, v)
@@ -111,20 +122,20 @@ class TestExtractFromScalarMul:
     def test_vec_in_left(self, vectors):
         """Mul(dot(v,w), s) → SVMul(extract_from_scalar(dot(v,w), v), s) = SVMul(w, s)."""
         v, w, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         expr = Mul(Dot(v, w), s)
         result = extract_from_scalar(expr, v)
         assert isinstance(result, SVMul)
-        assert str(result.right) == 's'
+        assert str(result.right) == "s"
 
     def test_vec_in_right(self, vectors):
         """Mul(s, dot(v,w)) → SVMul(extract_from_scalar(dot(v,w), v), s) = SVMul(w, s)."""
         v, w, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         expr = Mul(s, Dot(v, w))
         result = extract_from_scalar(expr, v)
         assert isinstance(result, SVMul)
-        assert str(result.right) == 's'
+        assert str(result.right) == "s"
 
     def test_neither_side_has_vec(self, vectors, scalars):
         """Mul(a, b) where neither contains vec returns ZeroVector."""
@@ -202,6 +213,7 @@ class TestExtractFromScalarLeaf:
 # extract_from_vector — Extract From Vector
 # ===========================================================================
 
+
 class TestExtractFromVectorVAdd:
     """extract_from_vector through vector addition."""
 
@@ -238,7 +250,7 @@ class TestExtractFromVectorCross:
         v, w, _ = vectors
         result = extract_from_vector(Cross(w, v), v)
         assert isinstance(result, Hat)
-        assert str(result.expr) == 'w'
+        assert str(result.expr) == "w"
 
     def test_cross_left_is_vec(self, vectors):
         """Cross(vec, b) = -Hat(b) * vec → coefficient is -Hat(b)."""
@@ -246,7 +258,7 @@ class TestExtractFromVectorCross:
         result = extract_from_vector(Cross(v, w), v)
         assert isinstance(result, SMMul)
         assert isinstance(result.left, Hat)
-        assert str(result.left.expr) == 'w'
+        assert str(result.left.expr) == "w"
 
     def test_cross_self(self, vectors):
         """Cross(v, v) = 0 → coefficient is ZeroMatrix."""
@@ -293,7 +305,7 @@ class TestExtractFromVectorMVMul:
         assert str(result) == str(M)
 
     def test_right_contains_vec(self, vectors, matrices):
-        """MVMul(M, Cross(a, vec)) → MMMul(M, extract_from_vector(Cross(a,vec), vec)) = MMMul(M, Hat(a))."""
+        """MVMul(M, Cross(a, vec)) → MMMul(M, Hat(a))."""
         v, w, _ = vectors
         M, _ = matrices
         expr = MVMul(M, Cross(w, v))
@@ -320,7 +332,7 @@ class TestExtractFromVectorMVMulMatSide:
         result = extract_from_vector(expr, v)
         assert isinstance(result, SMMul)
         assert isinstance(result.left, Hat)
-        assert str(result.left.expr) == 'w'
+        assert str(result.left.expr) == "w"
 
     def test_hat_of_expr_containing_vec(self, vectors, matrices):
         """MVMul(Hat(M*vec), b) → -Hat(b) * extract_from_vector(M*vec, vec) = -Hat(b) * M."""
@@ -348,10 +360,10 @@ class TestExtractFromVectorMVMulMatSide:
         """MVMul(SMMul(Hat(vec), s), b) redistributes scalar then extracts.
 
         SMMul(Hat(v), s) * w → MVMul(Hat(v), SVMul(w, s))
-        → Hat(v) contains v → _extract_from_vector_mvmul_mat → Hat case: expr == v → SMMul(Hat(SVMul(w,s)), -1)
+        → Hat case: expr == v → SMMul(Hat(SVMul(w,s)), -1)
         """
         v, w, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         expr = MVMul(SMMul(Hat(v), s), w)
         result = extract_from_vector(expr, v)
         assert isinstance(result, SMMul)
@@ -385,7 +397,7 @@ class TestExtractFromVectorLeaf:
     """extract_from_vector on leaf expressions."""
 
     def test_plain_vector_not_target_raises(self, vectors):
-        """extract_from_vector on a plain Vector that isn't the target raises NotImplementedError."""
+        """Plain Vector that isn't the target raises NotImplementedError."""
         v, w, _ = vectors
         with pytest.raises(NotImplementedError, match="unhandled"):
             extract_from_vector(w, v)
@@ -398,11 +410,11 @@ class TestExtractFromVectorSVMul:
         """SVMul(M*vec, s) → SMMul(extract_from_vector(M*vec, vec), s) = SMMul(M, s)."""
         v, _, _ = vectors
         M, _ = matrices
-        s = Scalar('s')
+        s = Scalar("s")
         expr = SVMul(MVMul(M, v), s)
         result = extract_from_vector(expr, v)
         assert isinstance(result, SMMul)
-        assert str(result.right) == 's'
+        assert str(result.right) == "s"
 
     def test_scalar_side_contains_vec_raises(self, vectors):
         """SVMul(w, dot(v, u)) raises NotImplementedError for scalar side."""
@@ -416,13 +428,14 @@ class TestExtractFromVectorSVMul:
 # extract_from_matrix — Extract From Matrix
 # ===========================================================================
 
+
 class TestExtractFromMatrix:
     """extract_from_matrix — extract from matrix."""
 
     def test_madd_one_matching_term(self, matrices):
         """MAdd with one term containing target extracts it."""
         M, N = matrices
-        P = Matrix('P')
+        P = Matrix("P")
         expr = MAdd(MMMul(M, N), P)
         result = extract_from_matrix(expr, N)
         assert str(result) == str(M)
@@ -430,7 +443,7 @@ class TestExtractFromMatrix:
     def test_madd_multiple_matching_terms(self, matrices):
         """MAdd with multiple terms containing target combines via MAdd."""
         M, N = matrices
-        P = Matrix('P')
+        P = Matrix("P")
         expr = MAdd(MMMul(M, N), MMMul(P, N))
         result = extract_from_matrix(expr, N)
         assert isinstance(result, MAdd)
@@ -439,7 +452,7 @@ class TestExtractFromMatrix:
     def test_madd_no_matching_terms(self, matrices):
         """MAdd where no term contains target returns ZeroMatrix."""
         M, N = matrices
-        P = Matrix('P')
+        P = Matrix("P")
         expr = MAdd(M, P)
         result = extract_from_matrix(expr, N)
         assert result.is_zero
@@ -453,7 +466,7 @@ class TestExtractFromMatrix:
     def test_mmmul_neither_has_target(self, matrices):
         """MMMul(M, P) where neither contains target returns ZeroMatrix."""
         M, N = matrices
-        P = Matrix('P')
+        P = Matrix("P")
         result = extract_from_matrix(MMMul(M, P), N)
         assert result.is_zero
 
@@ -461,7 +474,7 @@ class TestExtractFromMatrix:
         """SMMul raises NotImplementedError."""
         v, _, _ = vectors
         M, _ = matrices
-        s = Scalar('s')
+        s = Scalar("s")
         with pytest.raises(NotImplementedError, match="SMMul"):
             extract_from_matrix(SMMul(M, s), v)
 
@@ -469,6 +482,7 @@ class TestExtractFromMatrix:
 # ===========================================================================
 # Integration / end-to-end
 # ===========================================================================
+
 
 class TestExtractEndToEnd:
     """End-to-end extraction scenarios matching dynamics pipeline usage."""
@@ -487,8 +501,8 @@ class TestExtractEndToEnd:
         result = extract_coeff(expr, v)
         # v is on the left, v == v → return right = MVMul(M, w)
         assert isinstance(result, MVMul)
-        assert str(result.left) == 'M'
-        assert str(result.right) == 'w'
+        assert str(result.left) == "M"
+        assert str(result.right) == "w"
 
     def test_cross_in_dot_extraction(self, vectors):
         """Extract vec from Dot(vec, Cross(a, b)) — common in angular momentum."""
@@ -496,20 +510,20 @@ class TestExtractEndToEnd:
         expr = Dot(v, Cross(w, u))
         result = extract_coeff(expr, v)
         assert isinstance(result, Cross)
-        assert str(result.left) == 'w'
-        assert str(result.right) == 'u'
+        assert str(result.left) == "w"
+        assert str(result.right) == "u"
 
     def test_scalar_mul_dot_extraction(self, vectors):
         """Extract vec from s * Dot(vec, w)."""
         v, w, _ = vectors
-        s = Scalar('s')
+        s = Scalar("s")
         expr = Mul(s, Dot(v, w))
         result = extract_coeff(expr, v)
         # extract_from_scalar(Mul(s, Dot(v, w)), v):
         #   right has v → SVMul(extract_from_scalar(Dot(v, w), v), s) = SVMul(w, s)
         assert isinstance(result, SVMul)
-        assert str(result.left) == 'w'
-        assert str(result.right) == 's'
+        assert str(result.left) == "w"
+        assert str(result.right) == "s"
 
     def test_add_of_dots_extraction(self, vectors):
         """Extract vec from Dot(vec, w) + Dot(vec, u)."""
@@ -519,7 +533,7 @@ class TestExtractEndToEnd:
         assert isinstance(result, VAdd)
         assert len(result.nodes) == 2
         strs = {str(n) for n in result.nodes}
-        assert strs == {'w', 'u'}
+        assert strs == {"w", "u"}
 
     def test_mvmul_extraction_from_vector(self, vectors, matrices):
         """Extract vec from MVMul(M, vec) directly."""

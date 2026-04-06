@@ -16,9 +16,9 @@ def point_mass():
 
     :return: None
     """
-    m, g = getScalars('m g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x, f = getVectors(['x', 'f'])
+    m, g = getScalars("m g", attr=["Constant"])
+    e3 = Vector("e3", attr=["Constant"], value=np.array([0.0, 0.0, 1]))
+    x, f = getVectors(["x", "f"])
 
     v = x.t_diff()
 
@@ -35,14 +35,14 @@ def point_mass():
     eqs = compute_eom(L, deltaW, SystemVariables(vectors=[x]))
     print_eom(eqs)
 
-    print('done')
+    print("done")
 
 
 def two_point_masses():
     """two point masses"""
-    m1, m2, g = getScalars('m1 m2 g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x1, f1, x2, f2 = getVectors(['x1', 'f1', 'x2', 'f2'])
+    m1, m2, g = getScalars("m1 m2 g", attr=["Constant"])
+    e3 = Vector("e3", attr=["Constant"], value=np.array([0.0, 0.0, 1]))
+    x1, f1, x2, f2 = getVectors(["x1", "f1", "x2", "f2"])
 
     v1, v2 = x1.t_diff(), x2.t_diff()
     # computing energies
@@ -57,7 +57,7 @@ def two_point_masses():
     eqs = compute_eom(L, dW, SystemVariables(vectors=[x1, x2]))
     print_eom(eqs)
 
-    print('done')
+    print("done")
 
 
 if __name__ == "__main__":

@@ -8,11 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from geomech.core.base.expressions import Expr, ZeroVector, ZeroMatrix, S2, SO3
-from geomech.core.base.types import ExprType
+from geomech.core.base.expressions import S2, SO3, Expr, ZeroVector
 from geomech.core.math.extract import extract_from_vector
 from geomech.core.operations.addition import VAdd
-from geomech.core.operations.calculus import TimeDerivative
 from geomech.core.transformations.expand import expand
 from geomech.core.transformations.simplify import full_simplify
 from geomech.dynamics.variables import SystemVariables

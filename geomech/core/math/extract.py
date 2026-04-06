@@ -13,26 +13,32 @@ with vec in both operands) raise NotImplementedError.
 
 from __future__ import annotations
 
-from geomech.core.base.expressions import ZeroVector, ZeroMatrix
+from geomech.core.base.expressions import ZeroMatrix, ZeroVector
 from geomech.core.base.types import ExprType
-from geomech.core.operations.addition import Add, VAdd, MAdd
+from geomech.core.operations.addition import Add, MAdd, VAdd
+from geomech.core.operations.calculus import TimeDerivative, TimeIntegral, Variation
+from geomech.core.operations.geometry import Cross, Dot, Hat, Transpose
 from geomech.core.operations.multiplication import (
-    Mul, SVMul, SMMul, MVMul, MMMul, VVMul,
+    MMMul,
+    Mul,
+    MVMul,
+    SMMul,
+    SVMul,
+    VVMul,
 )
-from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
-from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
-
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def extract_coeff(expr, vec):
     """Extract the coefficient of *vec* from *expr*.
 
-    Dispatches to extract_from_scalar / extract_from_vector / extract_from_matrix based on expr.type.
+    Dispatches to extract_from_scalar / extract_from_vector /
+    extract_from_matrix based on expr.type.
     """
-    match getattr(expr, 'type', None):
+    match getattr(expr, "type", None):
         case ExprType.SCALAR:
             return extract_from_scalar(expr, vec)
         case ExprType.VECTOR:
@@ -48,6 +54,7 @@ def extract_coeff(expr, vec):
 # ---------------------------------------------------------------------------
 # extract_from_scalar
 # ---------------------------------------------------------------------------
+
 
 def extract_from_scalar(expr, vec):
     """Extract the coefficient of *vec* from a scalar expression."""
@@ -108,9 +115,11 @@ def extract_from_scalar(expr, vec):
 # extract_from_vector
 # ---------------------------------------------------------------------------
 
+
 def extract_from_vector(expr, vec):
     """Extract the coefficient of *vec* from a vector expression."""
     from geomech.core.base.expressions import IdentityMatrix
+
     # Base case: expr IS the target vector → coefficient is identity
     if str(expr) == str(vec):
         return IdentityMatrix
@@ -233,6 +242,7 @@ def _extract_vec_mvmul_mat(mat, b, vec):
 # ---------------------------------------------------------------------------
 # extract_from_matrix
 # ---------------------------------------------------------------------------
+
 
 def extract_from_matrix(expr, vec):
     """Extract the coefficient of *vec* from a matrix expression.

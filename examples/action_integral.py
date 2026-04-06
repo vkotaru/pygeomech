@@ -14,9 +14,9 @@ def point_mass():
              point-mass position: x  [m]
              input force: f [N]
     """
-    m, g = getScalars('m g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x, f = getVectors(['x', 'f'])
+    m, g = getScalars("m g", attr=["Constant"])
+    e3 = Vector("e3", attr=["Constant"], value=np.array([0.0, 0.0, 1]))
+    x, f = getVectors(["x", "f"])
 
     v = x.t_diff()
 
@@ -33,16 +33,16 @@ def point_mass():
     eqs = compute_eom(L, deltaW, SystemVariables(vectors=[x]))
     print_eom(eqs)
 
-    print('done')
+    print("done")
 
 
 def two_point_masses():
     """
     two point masses
     """
-    m1, m2, g = getScalars('m1 m2 g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x1, f1, x2, f2 = getVectors(['x1', 'f1', 'x2', 'f2'])
+    m1, m2, g = getScalars("m1 m2 g", attr=["Constant"])
+    e3 = Vector("e3", attr=["Constant"], value=np.array([0.0, 0.0, 1]))
+    x1, f1, x2, f2 = getVectors(["x1", "f1", "x2", "f2"])
 
     v1, v2 = x1.t_diff(), x2.t_diff()
     # computing energies
@@ -81,13 +81,13 @@ def spherical_pendulum():
     """
     # define constant scalars
     # mass, acceleration due to gravity, length of the pendulum
-    m, g, l = getScalars('m g l', attr=['Constant'])
+    m, g, l = getScalars("m g l", attr=["Constant"])
 
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))  # gravity direction
+    e3 = Vector("e3", attr=["Constant"], value=np.array([0.0, 0.0, 1]))  # gravity direction
 
-    q = S2('q')
+    q = S2("q")
     om = q.get_tangent_vector()
-    f = Vector('f')  # external force
+    f = Vector("f")  # external force
 
     x = l * q
     v = x.t_diff()
@@ -109,6 +109,6 @@ if __name__ == "__main__":
     # print('generating dynamics for two independent point masses')
     # two_point_masses()
 
-    print('\n-----------------------------------\n')
-    print('generating dynamics for spherical pendulum')
+    print("\n-----------------------------------\n")
+    print("generating dynamics for spherical pendulum")
     spherical_pendulum()

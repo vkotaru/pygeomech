@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from geomech.core.base.expressions import SO3
 from geomech.core.operations.addition import Add
-from geomech.core.operations.multiplication import Mul, MVMul, MMMul
-from geomech.core.operations.geometry import Dot, Cross, Transpose
+from geomech.core.operations.geometry import Cross, Dot, Transpose
+from geomech.core.operations.multiplication import Mul, MVMul
 
 
 def collect(expr, vec):
@@ -77,8 +77,7 @@ def _collect_dot(expr, vec):
         # Both sides are MVMul with the same rotation matrix prefix
         # Dot(R*a, R*b) = Dot(a, b) for orthogonal R (SO3)
         case (MVMul(), MVMul()):
-            if (isinstance(l.left, SO3) and isinstance(r.left, SO3)
-                    and l.left == r.left):
+            if isinstance(l.left, SO3) and isinstance(r.left, SO3) and l.left == r.left:
                 # Strip the common rotation: Dot(R*a, R*b) → Dot(a, b)
                 return collect(Dot(l.right, r.right), vec)
             # General MVMul case: try to expose vec

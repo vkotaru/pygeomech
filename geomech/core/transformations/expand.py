@@ -13,10 +13,11 @@ Distribution rules implemented:
   MMMul over MAdd → MAdd    (matrix)
   Hat/Vee — recurse into child
 """
-from geomech.core.operations.addition import Add, VAdd, MAdd
-from geomech.core.operations.multiplication import Mul, SVMul, SMMul, MVMul, MMMul
-from geomech.core.operations.geometry import Dot, Cross, Hat, Vee
-from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
+
+from geomech.core.operations.addition import Add, MAdd, VAdd
+from geomech.core.operations.calculus import TimeDerivative, TimeIntegral, Variation
+from geomech.core.operations.geometry import Cross, Dot, Hat, Vee
+from geomech.core.operations.multiplication import MMMul, Mul, MVMul, SMMul, SVMul
 
 
 def _distribute(l, r, op_cls, sum_cls, l_sum_cls, r_sum_cls):
@@ -36,8 +37,7 @@ def _distribute(l, r, op_cls, sum_cls, l_sum_cls, r_sum_cls):
     r_is_sum = isinstance(r, r_sum_cls)
 
     if l_is_sum and r_is_sum:
-        return sum_cls(*[op_cls(nl, nr)
-                         for nl in l.nodes for nr in r.nodes])
+        return sum_cls(*[op_cls(nl, nr) for nl in l.nodes for nr in r.nodes])
     if l_is_sum:
         return sum_cls(*[op_cls(nl, r) for nl in l.nodes])
     if r_is_sum:

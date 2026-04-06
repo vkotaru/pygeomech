@@ -12,9 +12,8 @@ from __future__ import annotations
 from geomech.core.math.extract import extract_coeff
 from geomech.core.math.ibp import integrate_by_parts
 from geomech.core.transformations.expand import expand
-from geomech.core.transformations.simplify import full_simplify
 from geomech.core.transformations.manifold_rules import apply_manifold_rules
-
+from geomech.core.transformations.simplify import full_simplify
 from geomech.dynamics.variables import SystemVariables
 
 

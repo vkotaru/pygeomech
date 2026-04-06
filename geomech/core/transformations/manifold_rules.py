@@ -18,13 +18,12 @@ from __future__ import annotations
 
 from geomech.core.base.expressions import S2, SO3, TS2, TSO3, Scalar
 from geomech.core.operations.addition import VAdd
-from geomech.core.operations.multiplication import SVMul
+from geomech.core.operations.calculus import TimeDerivative, Variation
 from geomech.core.operations.geometry import Cross
-from geomech.core.operations.calculus import Variation, TimeDerivative
-
+from geomech.core.operations.multiplication import SVMul
 from geomech.dynamics.variables import SystemVariables
 
-_NEG1 = Scalar('(-1)', value=-1, attr=['Constant'])
+_NEG1 = Scalar("(-1)", value=-1, attr=["Constant"])
 
 
 def apply_manifold_rules(expr, variables: SystemVariables):
@@ -40,14 +39,14 @@ def apply_manifold_rules(expr, variables: SystemVariables):
         if isinstance(vec, S2):
             omega = vec.get_tangent_vector()
             xi = vec.get_variation_vector()
-            tangent_map[str(omega)] = ('S2', vec, omega, xi)
+            tangent_map[str(omega)] = ("S2", vec, omega, xi)
 
     # SO3 manifolds (matrices)
     for mat in variables.matrices:
         if isinstance(mat, SO3):
             Omega = mat.get_tangent_vector()
             eta = mat.get_variation_vector()
-            tangent_map[str(Omega)] = ('SO3', mat, Omega, eta)
+            tangent_map[str(Omega)] = ("SO3", mat, Omega, eta)
 
     if not tangent_map:
         return expr
@@ -63,13 +62,13 @@ def _substitute(expr, tangent_map):
         inner = expr.expr
         if isinstance(inner, (TS2, TSO3)) and str(inner) in tangent_map:
             kind, parent, omega, var_vec = tangent_map[str(inner)]
-            if kind == 'S2':
+            if kind == "S2":
                 # δ(ω) = ξ̇ - ω × ξ
                 return VAdd(
                     TimeDerivative(var_vec),
                     SVMul(Cross(omega, var_vec), _NEG1),
                 )
-            elif kind == 'SO3':
+            elif kind == "SO3":
                 # δ(Ω) = η̇ + Ω × η
                 return VAdd(
                     TimeDerivative(var_vec),
@@ -84,7 +83,7 @@ def _substitute(expr, tangent_map):
         return expr
 
     # Recurse into children
-    nodes = getattr(expr, 'nodes', None)
+    nodes = getattr(expr, "nodes", None)
     if nodes is None or len(nodes) == 0:
         return expr
 
@@ -98,17 +97,17 @@ def _substitute(expr, tangent_map):
 
 def _rebuild(expr, new_nodes):
     """Rebuild an expression node with new children."""
-    from geomech.core.operations.addition import Add, VAdd, MAdd
+    from geomech.core.operations.addition import Add, MAdd, VAdd
+    from geomech.core.operations.calculus import TimeDerivative, TimeIntegral, Variation
+    from geomech.core.operations.geometry import Cross, Dot, Hat, Transpose, Vee
     from geomech.core.operations.multiplication import (
-        Mul,
-        SVMul,
-        SMMul,
-        MVMul,
         MMMul,
+        Mul,
+        MVMul,
+        SMMul,
+        SVMul,
         VVMul,
     )
-    from geomech.core.operations.geometry import Dot, Cross, Hat, Vee, Transpose
-    from geomech.core.operations.calculus import Variation, TimeDerivative, TimeIntegral
 
     cls = type(expr)
 
@@ -121,9 +120,7 @@ def _rebuild(expr, new_nodes):
         return cls(new_nodes[0], new_nodes[1])
 
     # Unary ops
-    if isinstance(
-            expr,
-        (Hat, Vee, Transpose, Variation, TimeDerivative, TimeIntegral)):
+    if isinstance(expr, (Hat, Vee, Transpose, Variation, TimeDerivative, TimeIntegral)):
         return cls(new_nodes[0])
 
     return expr

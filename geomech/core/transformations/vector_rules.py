@@ -15,10 +15,11 @@ Rules applied:
   - Hat(0) = ZeroMatrix           hat of zero vector
   - Linearity through Add and Mul
 """
-from geomech.core.base.expressions import Scalar, ZeroVector, ZeroMatrix, TS2, S2
+
+from geomech.core.base.expressions import S2, TS2, Scalar, ZeroMatrix, ZeroVector
 from geomech.core.operations.addition import Add, VAdd
+from geomech.core.operations.geometry import Cross, Dot, Hat, Transpose
 from geomech.core.operations.multiplication import Mul, SVMul
-from geomech.core.operations.geometry import Dot, Cross, Hat, Transpose
 
 
 def _is_orthogonal_dot_cross(vec, cross_expr):
@@ -28,9 +29,7 @@ def _is_orthogonal_dot_cross(vec, cross_expr):
       - vec == a or vec == b  (x perpendicular to x x y)
       - a == b                (x x x = 0)
     """
-    return (vec == cross_expr.left
-            or vec == cross_expr.right
-            or cross_expr.left == cross_expr.right)
+    return vec == cross_expr.left or vec == cross_expr.right or cross_expr.left == cross_expr.right
 
 
 def _is_tangent_orthogonal(a, b):
@@ -60,46 +59,41 @@ def _try_s2_cross_reduction(expr):
     l, r = expr.left, expr.right
 
     # Pattern: Cross(q, Cross(a, q)) where q is S2, a is tangent to q
-    if (isinstance(l, S2) and isinstance(r, Cross)
-            and r.right == l):
+    if isinstance(l, S2) and isinstance(r, Cross) and r.right == l:
         a = r.left
         if _is_tangent_to_s2(a, l):
             return a
 
     # Pattern: Cross(q, Cross(q, a)) = -a (when a is tangent)
     # q × (q × a) = q*(q·a) - a*(q·q) = -a  (since q·a=0 and q·q=1)
-    if (isinstance(l, S2) and isinstance(r, Cross)
-            and r.left == l):
+    if isinstance(l, S2) and isinstance(r, Cross) and r.left == l:
         a = r.right
         if _is_tangent_to_s2(a, l):
-            return SVMul(a, Scalar('(-1)', value=-1, attr=['Constant']))
+            return SVMul(a, Scalar("(-1)", value=-1, attr=["Constant"]))
 
     # Pattern: Cross(Cross(q, a), q) = a (when a is tangent)
     # (q × a) × q = q*(a·q) - a*(q·q) ... no, BAC-CAB is a×(b×c)
     # Actually: (q×a) × q = -q × (q×a) = -(q*(q·a) - a*(q·q)) = a
-    if (isinstance(l, Cross) and isinstance(r, S2)
-            and l.left == r):
+    if isinstance(l, Cross) and isinstance(r, S2) and l.left == r:
         a = l.right
         if _is_tangent_to_s2(a, r):
             return a
 
     # Pattern: Cross(Cross(a, q), q) = -a (when a is tangent)
     # (a×q) × q = -q × (a×q) = -(a*(q·q) - q*(q·a)) = -a
-    if (isinstance(l, Cross) and isinstance(r, S2)
-            and l.right == r):
+    if isinstance(l, Cross) and isinstance(r, S2) and l.right == r:
         a = l.left
         if _is_tangent_to_s2(a, r):
-            return SVMul(a, Scalar('(-1)', value=-1, attr=['Constant']))
+            return SVMul(a, Scalar("(-1)", value=-1, attr=["Constant"]))
 
     # Pattern: Cross(a, Cross(a, q)) = -q*(a·a) when a is tangent to q
     # a × (a × q) = a*(a·q) - q*(a·a) = -q*(a·a) since a⊥q
     # This produces SVMul(q, -Dot(a,a)) = scalar * q
-    if (isinstance(r, Cross) and r.right is not None
-            and isinstance(r.right, S2) and l == r.left):
+    if isinstance(r, Cross) and r.right is not None and isinstance(r.right, S2) and l == r.left:
         q = r.right
         a = l
         if _is_tangent_to_s2(a, q):
-            neg_one = Scalar('(-1)', value=-1, attr=['Constant'])
+            neg_one = Scalar("(-1)", value=-1, attr=["Constant"])
             return SVMul(q, Mul(Dot(a, a), neg_one))
 
     return None
@@ -112,6 +106,7 @@ def _is_tangent_to_s2(expr, s2):
     or for TimeDerivative/Variation of such vectors.
     """
     from geomech.core.operations.calculus import TimeDerivative, Variation
+
     # Direct TS2
     if isinstance(expr, TS2) and expr.S2 is s2:
         return True
@@ -128,8 +123,8 @@ def _is_tangent_to_s2(expr, s2):
     return False
 
 
-_ZERO = lambda: Scalar('0', value=0, attr=['Constant', 'Zero'])
-_ONE = lambda: Scalar('1', value=1, attr=['Constant', 'Ones'])
+_ZERO = lambda: Scalar("0", value=0, attr=["Constant", "Zero"])
+_ONE = lambda: Scalar("1", value=1, attr=["Constant", "Ones"])
 
 
 def vector_rules(expr):
@@ -167,9 +162,9 @@ def vector_rules(expr):
                     return expr
 
                 # dot(q, q) = 1 when unit norm
-                case _ if (expr.left.is_unit_norm
-                           and expr.right.is_unit_norm
-                           and expr.left == expr.right):
+                case _ if (
+                    expr.left.is_unit_norm and expr.right.is_unit_norm and expr.left == expr.right
+                ):
                     return _ONE()
 
                 # dot(ω, q) = 0 — tangent vector orthogonal to manifold point
