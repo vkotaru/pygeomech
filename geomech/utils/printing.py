@@ -383,6 +383,240 @@ def _child_label(expr, index):
 
 
 # ---------------------------------------------------------------------------
+# LaTeX conversion
+# ---------------------------------------------------------------------------
+
+
+def _collect_scalar_factors(expr):
+    """Collect scalar multiplication chain into (sign, [factor_strings]).
+
+    Walks nested Mul to collect all scalar factors.
+    Returns (negative: bool, factors: list[str]).
+    """
+    from geomech.core.operations.multiplication import Mul
+
+    if isinstance(expr, Mul):
+        lneg, lfactors = _collect_scalar_factors(expr.left)
+        rneg, rfactors = _collect_scalar_factors(expr.right)
+        return (lneg ^ rneg, lfactors + rfactors)
+
+    val = getattr(expr, "value", None)
+    if isinstance(val, (int, float)):
+        if val == -1 or val == -1.0:
+            return (True, [])
+        if val == 1 or val == 1.0:
+            return (False, [])
+        if val == 0.5:
+            return (False, [r"\frac{1}{2}"])
+        if val == -0.5:
+            return (True, [r"\frac{1}{2}"])
+        if val < 0:
+            return (True, [str(abs(val))])
+        return (False, [str(val)])
+
+    return (False, [to_latex(expr)])
+
+
+def to_latex(expr):
+    """Convert an expression tree to a LaTeX string.
+
+    Returns a string suitable for use with IPython.display.Math() or
+    inside a LaTeX equation environment.
+    """
+    from geomech.core.operations.addition import Add, MAdd, VAdd
+    from geomech.core.operations.calculus import TimeDerivative, TimeIntegral, Variation
+    from geomech.core.operations.geometry import Cross, Dot, Hat, Transpose, Vee
+    from geomech.core.operations.multiplication import MMMul, Mul, MVMul, SMMul, SVMul, VVMul
+
+    nodes = getattr(expr, "nodes", None)
+
+    # Leaf
+    if nodes is None or len(nodes) == 0:
+        name = getattr(expr, "name", None)
+        if name is not None:
+            val = getattr(expr, "value", None)
+            if val is not None and isinstance(val, (int, float)):
+                if val == -1 or val == -1.0:
+                    return "-1"
+                if val == 0.5:
+                    return r"\frac{1}{2}"
+                if val == -0.5:
+                    return r"-\frac{1}{2}"
+                if val == 1 or val == 1.0:
+                    return "1"
+                return str(val)
+            return name
+        return "?"
+
+    # N-ary addition
+    if isinstance(expr, (Add, VAdd, MAdd)):
+        parts = []
+        for i, child in enumerate(nodes):
+            s = to_latex(child)
+            if i > 0 and not s.startswith("-"):
+                parts.append(" + ")
+            elif i > 0:
+                parts.append(" ")
+            parts.append(s)
+        return "\\left(" + "".join(parts) + "\\right)"
+
+    # Scalar * Scalar — collect chain
+    if isinstance(expr, Mul):
+        neg, factors = _collect_scalar_factors(expr)
+        result = " ".join(factors) if factors else "1"
+        return f"-{result}" if neg else result
+
+    # SVMul: vector * scalar → collect scalar, render as coeff * vector
+    if isinstance(expr, SVMul):
+        vec_str = to_latex(expr.left)
+        neg, factors = _collect_scalar_factors(expr.right)
+        if factors:
+            coeff = " ".join(factors)
+            result = f"{coeff} {vec_str}"
+        else:
+            result = vec_str
+        return f"-{result}" if neg else result
+
+    # SMMul: matrix * scalar
+    if isinstance(expr, SMMul):
+        mat_str = to_latex(expr.left)
+        neg, factors = _collect_scalar_factors(expr.right)
+        if factors:
+            coeff = " ".join(factors)
+            result = f"{coeff} {mat_str}"
+        else:
+            result = mat_str
+        return f"-{result}" if neg else result
+
+    # MVMul: matrix * vector
+    if isinstance(expr, MVMul):
+        return f"{to_latex(expr.left)} {to_latex(expr.right)}"
+
+    # MMMul: matrix * matrix
+    if isinstance(expr, MMMul):
+        return f"{to_latex(expr.left)} {to_latex(expr.right)}"
+
+    # VVMul: vector * vector^T
+    if isinstance(expr, VVMul):
+        return f"{to_latex(expr.left)} {to_latex(expr.right)}"
+
+    # Dot product
+    if isinstance(expr, Dot):
+        return f"{to_latex(expr.left)} \\cdot {to_latex(expr.right)}"
+
+    # Cross product
+    if isinstance(expr, Cross):
+        return f"{to_latex(expr.left)} \\times {to_latex(expr.right)}"
+
+    # Hat (skew-symmetric)
+    if isinstance(expr, Hat):
+        return f"\\widehat{{{to_latex(expr.expr)}}}"
+
+    # Vee
+    if isinstance(expr, Vee):
+        return f"\\left({to_latex(expr.expr)}\\right)^\\vee"
+
+    # Transpose
+    if isinstance(expr, Transpose):
+        return f"{to_latex(expr.expr)}^T"
+
+    # Time derivative — detect double derivative for ddot
+    if isinstance(expr, TimeDerivative):
+        if isinstance(expr.expr, TimeDerivative):
+            return f"\\ddot{{{to_latex(expr.expr.expr)}}}"
+        return f"\\dot{{{to_latex(expr.expr)}}}"
+
+    # Variation
+    if isinstance(expr, Variation):
+        return f"\\delta {to_latex(expr.expr)}"
+
+    # Time integral
+    if isinstance(expr, TimeIntegral):
+        return f"\\int {to_latex(expr.expr)} \\, dt"
+
+    # Fallback
+    return str(expr)
+
+
+def display_latex(expr):
+    """Display an expression as rendered LaTeX in a Jupyter notebook."""
+    from IPython.display import Math, display
+
+    display(Math(to_latex(expr)))
+
+
+def _strip_outer_parens(s):
+    """Remove \\left( ... \\right) wrapping if present at the outermost level."""
+    if s.startswith("\\left(") and s.endswith("\\right)"):
+        return s[6:-7]
+    return s
+
+
+def display_eom(eqns):
+    """Display equations of motion as rendered LaTeX in a Jupyter notebook."""
+    from IPython.display import Math, display
+
+    for key, (var_vec, eqn) in eqns.items():
+        latex_str = _strip_outer_parens(to_latex(eqn)) + " = 0"
+        display(Math(latex_str))
+
+
+def _latex_str_key(s):
+    """Convert a raw str key (from EOM dicts) to cleaner LaTeX.
+
+    Handles patterns like \\frac{d}{dt}(\\frac{d}{dt}(x)) → \\ddot{x}
+    and \\frac{d}{dt}(\\omega_{q}) → \\dot{\\omega_{q}}.
+    """
+    import re
+
+    # ddot: \frac{d}{dt}(\frac{d}{dt}(X)) → \ddot{X}
+    m = re.match(r"^\\frac\{d\}\{dt\}\(\\frac\{d\}\{dt\}\((.+)\)\)$", s)
+    if m:
+        return f"\\ddot{{{m.group(1)}}}"
+    # dot: \frac{d}{dt}(X) → \dot{X}
+    m = re.match(r"^\\frac\{d\}\{dt\}\((.+)\)$", s)
+    if m:
+        return f"\\dot{{{m.group(1)}}}"
+    return s
+
+
+def display_standard_form(sf):
+    """Display standard form as M*ddq + G*u + f = 0 in a Jupyter notebook."""
+    from IPython.display import Math, display
+
+    for key, eq in sf.items():
+        parts = []
+        # M * accel terms
+        for accel, coeff in eq.M.items():
+            coeff_str = to_latex(coeff)
+            accel_str = _latex_str_key(accel)
+            parts.append(f"{coeff_str} {accel_str}")
+        # G * input terms
+        for inp, coeff in eq.G.items():
+            g_str = to_latex(coeff)
+            if g_str in ("I", "1"):
+                parts.append(inp)
+            else:
+                parts.append(f"{g_str} {inp}")
+        # f term
+        f_str = to_latex(eq.f)
+        if f_str not in ("0v", "0"):
+            parts.append(f_str)
+        # Join with sign-aware concatenation
+        if not parts:
+            equation = "0 = 0"
+        else:
+            result = parts[0]
+            for p in parts[1:]:
+                if p.startswith("-"):
+                    result += f" {p}"
+                else:
+                    result += f" + {p}"
+            equation = result + " = 0"
+        display(Math(f"{_latex_str_key(key)}: \\quad {equation}"))
+
+
+# ---------------------------------------------------------------------------
 # PDF renderer
 # ---------------------------------------------------------------------------
 

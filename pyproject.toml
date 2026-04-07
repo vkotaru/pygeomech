@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest",
     "ruff",
+    "jupyterlab",
 ]
 docs = [
     "mkdocs-material",
