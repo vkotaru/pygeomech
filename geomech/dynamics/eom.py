@@ -9,7 +9,7 @@ separate_variations(expr, variation_vectors)
 
 from __future__ import annotations
 
-from geomech.core.math.extract import extract_coeff
+from geomech.core.math.extract import extract_linear_coeff
 from geomech.core.math.ibp import integrate_by_parts
 from geomech.core.transformations.expand import expand
 from geomech.core.transformations.manifold_rules import apply_manifold_rules
@@ -44,10 +44,10 @@ def compute_eom(lagrangian, inf_work, variables: SystemVariables):
     variation_vectors = []
     variation_vector_dots = []
 
-    if variables.scalars:
-        raise NotImplementedError(
-            "Scalar configuration variables not yet supported in EOM pipeline"
-        )
+    for s in variables.scalars:
+        ds = s.delta()  # Variation(scalar) — scalar type
+        variation_vectors.append(ds)
+        variation_vector_dots.append(ds.t_diff())
 
     for vec in variables.vectors:
         x = vec.get_variation_vector()
@@ -76,7 +76,7 @@ def separate_variations(inf_action_integral, variation_vectors):
     """
     eom = {}
     for vec in variation_vectors:
-        dyn_eqn = extract_coeff(inf_action_integral, vec)
+        dyn_eqn = extract_linear_coeff(inf_action_integral, vec)
         dyn_eqn = full_simplify(dyn_eqn)
         eom[str(vec)] = (vec, dyn_eqn)
     return eom

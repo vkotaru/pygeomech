@@ -20,6 +20,29 @@ class SizeMismatchError(Exception):
         super().__init__(msg)
 
 
+class AlgebraicError(Exception):
+    """Expression cannot be algebraically factored as requested.
+
+    Raised when an operation is mathematically impossible, not merely
+    unimplemented — e.g. extracting a linear vector coefficient from
+    an outer product (rank-1 matrix) that does not factor as C * q.
+    """
+
+    def __init__(self, msg=""):
+        super().__init__(msg)
+
+
+class NonLinearError(Exception):
+    """Query appears nonlinearly (degree > 1) in the expression.
+
+    Raised when linear coefficient extraction encounters the query
+    in both children of a binary node — e.g. Mul(f(q), g(q)).
+    """
+
+    def __init__(self, msg=""):
+        super().__init__(msg)
+
+
 class UndefinedCaseError(Exception):
     """New case found"""
 

@@ -41,7 +41,7 @@ from geomech.core.base import (
 # --- Layer 4: symbolic math ---
 from geomech.core.math import (
     collect,
-    extract_coeff,
+    extract_linear_coeff,
     integrate_by_parts,
 )
 

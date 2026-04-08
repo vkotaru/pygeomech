@@ -217,7 +217,7 @@ geomech/
         base/           # Expr types, flags, scalars/vectors/matrices, manifolds
         operations/     # Add, Mul, Dot, Cross, Hat, Variation, TimeDerivative, ...
         transformations/# expand, simplify, pull, vector_rules
-        math/           # extract_coeff, collect, integrate_by_parts
+        math/           # extract_linear_coeff, collect, integrate_by_parts
     dynamics/           # compute_eom, SystemVariables
     utils/              # print_eom, print_tree, render_eom
 ```

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from geomech.core.base.expressions import S2, SO3, Expr, ZeroVector
-from geomech.core.math.extract import extract_from_vector
+from geomech.core.math.extract import _vector_from_vector
 from geomech.core.operations.addition import VAdd
 from geomech.core.transformations.expand import expand
 from geomech.core.transformations.simplify import full_simplify
@@ -125,7 +125,7 @@ def _extract_single(eom_expr, accel_vars, inputs):
         accel_expr = VAdd(*accel_terms) if len(accel_terms) > 1 else accel_terms[0]
         for a in accel_vars:
             if accel_expr.has(a):
-                coeff = extract_from_vector(accel_expr, a)
+                coeff = _vector_from_vector(accel_expr, a)
                 coeff = full_simplify(coeff)
                 M[str(a)] = coeff
 
@@ -135,7 +135,7 @@ def _extract_single(eom_expr, accel_vars, inputs):
         input_expr = VAdd(*input_terms) if len(input_terms) > 1 else input_terms[0]
         for u in inputs:
             if input_expr.has(u):
-                coeff = extract_from_vector(input_expr, u)
+                coeff = _vector_from_vector(input_expr, u)
                 coeff = full_simplify(coeff)
                 G[str(u)] = coeff
 
